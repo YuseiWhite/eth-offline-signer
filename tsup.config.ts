@@ -1,6 +1,6 @@
-import { defineConfig } from 'tsup';
+import { defineConfig, type Options } from 'tsup';
 
-const commonEsbuildOptions = (options: any) => {
+const commonEsbuildOptions: Options['esbuildOptions'] = (options) => {
   options.platform = 'node';
   options.mainFields = ['module', 'main'];
 };
