@@ -6,7 +6,7 @@ const commonEsbuildOptions: Options['esbuildOptions'] = (options) => {
 };
 
 export const tsupConfig = defineConfig([
-  // Library build
+  // Library build - CommonJS
   {
     entry: ['src/index.ts'],
     outDir: 'dist',
@@ -19,7 +19,23 @@ export const tsupConfig = defineConfig([
     dts: true,
     shims: true,
     external: ['commander', 'viem', 'zod'],
-    target: 'node22',
+    target: 'node18',
+    esbuildOptions: commonEsbuildOptions,
+  },
+  // Library build - ES Module
+  {
+    entry: ['src/index.ts'],
+    outDir: 'dist',
+    format: ['esm'],
+    outExtension: () => ({ js: '.mjs' }),
+    splitting: false,
+    sourcemap: true,
+    minify: false,
+    clean: false,
+    dts: false,
+    shims: true,
+    external: ['commander', 'viem', 'zod'],
+    target: 'node18',
     esbuildOptions: commonEsbuildOptions,
   },
   // CLI build
@@ -35,7 +51,7 @@ export const tsupConfig = defineConfig([
     dts: false,
     shims: true,
     noExternal: ['commander', 'zod', /^viem(\/.*)?$/],
-    target: 'node22',
+    target: 'node18',
     esbuildOptions: commonEsbuildOptions,
   },
 ]);
