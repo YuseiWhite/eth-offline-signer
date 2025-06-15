@@ -1,0 +1,54 @@
+{
+  "name": "eth-offline-signer",
+  "version": "1.1.0",
+  "description": "A viem-based CLI for securely signing Ethereum (EIP-1559) transactions offline.",
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.cjs"
+    }
+  },
+  "bin": {
+    "eth-offline-signer": "dist/cli.cjs"
+  },
+  "type": "commonjs",
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=7.0.0"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "format": "biome format --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "audit": "pnpm audit --audit-level=low",
+    "clean": "rm -rf dist node_modules/.cache",
+    "prepare": "husky install",
+    "prepack": "pnpm run build",
+    "check": "pnpm run type-check && biome check . && pnpm run test && pnpm run build && pnpm run audit"
+  },
+  "dependencies": {
+    "commander": "^11.1.0",
+    "viem": "^2.31.0",
+    "zod": "^3.25.57"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^20.19.0",
+    "@vitest/coverage-v8": "^3.2.3",
+    "execa": "^8.0.1",
+    "husky": "^8.0.3",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.3"
+  },
+  "keywords": ["ethereum", "eip-1559", "offline", "signer", "transaction", "cli"],
+  "author": "Developer",
+  "license": "MIT"
+}
