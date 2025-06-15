@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 
-export default defineConfig({
+export const vitestConfig = defineConfig({
   test: {
     globals: false,
     environment: 'node',
@@ -19,3 +19,5 @@ export default defineConfig({
     testTimeout: 30000,
   },
 });
+
+export default vitestConfig;

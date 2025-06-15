@@ -5,7 +5,7 @@ const commonEsbuildOptions: Options['esbuildOptions'] = (options) => {
   options.mainFields = ['module', 'main'];
 };
 
-export default defineConfig([
+export const tsupConfig = defineConfig([
   // Library build
   {
     entry: ['src/index.ts'],
@@ -39,3 +39,5 @@ export default defineConfig([
     esbuildOptions: commonEsbuildOptions,
   },
 ]);
+
+export default tsupConfig;
