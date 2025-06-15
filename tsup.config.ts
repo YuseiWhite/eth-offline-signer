@@ -5,38 +5,35 @@ const commonEsbuildOptions: Options['esbuildOptions'] = (options) => {
   options.mainFields = ['module', 'main'];
 };
 
+// Base configuration for library builds
+const baseLibraryConfig = {
+  entry: ['src/index.ts'],
+  outDir: 'dist',
+  splitting: false,
+  sourcemap: true,
+  minify: false,
+  shims: true,
+  external: ['commander', 'viem', 'zod'],
+  target: 'node18',
+  esbuildOptions: commonEsbuildOptions,
+};
+
 export const tsupConfig = defineConfig([
   // Library build - CommonJS
   {
-    entry: ['src/index.ts'],
-    outDir: 'dist',
+    ...baseLibraryConfig,
     format: ['cjs'],
     outExtension: () => ({ js: '.cjs' }),
-    splitting: false,
-    sourcemap: true,
-    minify: false,
     clean: true,
     dts: true,
-    shims: true,
-    external: ['commander', 'viem', 'zod'],
-    target: 'node18',
-    esbuildOptions: commonEsbuildOptions,
   },
   // Library build - ES Module
   {
-    entry: ['src/index.ts'],
-    outDir: 'dist',
+    ...baseLibraryConfig,
     format: ['esm'],
     outExtension: () => ({ js: '.mjs' }),
-    splitting: false,
-    sourcemap: true,
-    minify: false,
     clean: false,
     dts: false,
-    shims: true,
-    external: ['commander', 'viem', 'zod'],
-    target: 'node18',
-    esbuildOptions: commonEsbuildOptions,
   },
   // CLI build
   {
