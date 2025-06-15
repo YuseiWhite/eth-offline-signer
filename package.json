@@ -28,7 +28,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "audit": "pnpm audit --audit-level=low",
-    "clean": "rm -rf dist node_modules/.cache",
+    "clean": "node -e \"const fs=require('fs');[['dist'],['node_modules','.cache']].forEach(p=>fs.rmSync(p.join('/'),{recursive:true,force:true}))\"",
     "prepare": "husky install",
     "prepack": "pnpm run build",
     "check": "pnpm run type-check && biome check . && pnpm run test && pnpm run build && pnpm run audit"
