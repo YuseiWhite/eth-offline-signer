@@ -23,13 +23,22 @@ jobs:
         run: |
           echo "📊 Collecting code metrics..."
 
-          # Lines of code
-          TOTAL_LINES=$(find src -name "*.ts" -exec wc -l {} + | tail -1 | awk '{print $1}')
-          TEST_LINES=$(find test -name "*.ts" -exec wc -l {} + | tail -1 | awk '{print $1}')
+          # Lines of code with safe defaults
+          if [ -d "src" ] && [ "$(find src -name "*.ts" | wc -l)" -gt 0 ]; then
+            TOTAL_LINES=$(find src -name "*.ts" -exec wc -l {} + | tail -1 | awk '{print $1}')
+          else
+            TOTAL_LINES=0
+          fi
+
+          if [ -d "test" ] && [ "$(find test -name "*.ts" | wc -l)" -gt 0 ]; then
+            TEST_LINES=$(find test -name "*.ts" -exec wc -l {} + | tail -1 | awk '{print $1}')
+          else
+            TEST_LINES=0
+          fi
 
           # File counts
-          SRC_FILES=$(find src -name "*.ts" | wc -l)
-          TEST_FILES=$(find test -name "*.ts" | wc -l)
+          SRC_FILES=$(find src -name "*.ts" 2>/dev/null | wc -l || echo 0)
+          TEST_FILES=$(find test -name "*.ts" 2>/dev/null | wc -l || echo 0)
 
           # Dependencies
           PROD_DEPS=$(node -p "Object.keys(require('./package.json').dependencies || {}).length")
@@ -81,6 +90,13 @@ jobs:
         run: |
           echo "📋 Generating metrics report..."
 
+          # Calculate test/code ratio safely
+          if [ "${TOTAL_LINES}" -gt 0 ]; then
+            TEST_CODE_RATIO=$(echo "scale=2; ${TEST_LINES}/${TOTAL_LINES}" | bc)
+          else
+            TEST_CODE_RATIO="N/A"
+          fi
+
           cat << EOF > metrics-report.md
           # 📊 Project Metrics Report
 
@@ -95,7 +111,7 @@ jobs:
           | Source Files | ${SRC_FILES} |
           | Test Files | ${TEST_FILES} |
           | Test Coverage | ${COVERAGE}% |
-          | Test/Code Ratio | $(echo "scale=2; ${TEST_LINES}/${TOTAL_LINES}" | bc) |
+          | Test/Code Ratio | ${TEST_CODE_RATIO} |
 
           ## 📦 Dependencies
           | Type | Count |
