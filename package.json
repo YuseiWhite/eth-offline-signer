@@ -34,7 +34,7 @@
     "check": "pnpm run type-check && biome check . && pnpm run test && pnpm run build && pnpm run audit"
   },
   "dependencies": {
-    "commander": "^11.1.0",
+    "commander": "^14.0.0",
     "viem": "^2.31.0",
     "zod": "^3.25.57"
   },
