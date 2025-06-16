@@ -158,7 +158,7 @@ jobs:
           EOF
 
       - name: Upload performance report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: performance-report-${{ github.sha }}
           path: performance-report.md

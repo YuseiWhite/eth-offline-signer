@@ -151,7 +151,7 @@ jobs:
           echo "BADGE_COLOR=${BADGE_COLOR}" >> $GITHUB_ENV
 
       - name: Upload metrics report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: metrics-report-${{ github.run_number }}
           path: |
