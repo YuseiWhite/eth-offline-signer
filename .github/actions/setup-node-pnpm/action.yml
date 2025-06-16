@@ -24,7 +24,7 @@ runs:
         version: ${{ inputs.pnpm-version }}
 
     - name: Get pnpm store directory
-      id: pnpm-cache
+      id: pnpm-store-path
       shell: bash
       run: |
         echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
@@ -32,7 +32,7 @@ runs:
     - name: Setup pnpm cache
       uses: actions/cache@v3
       with:
-        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+        path: ${{ steps.pnpm-store-path.outputs.STORE_PATH }}
         key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
         restore-keys: |
           ${{ runner.os }}-pnpm-store-
