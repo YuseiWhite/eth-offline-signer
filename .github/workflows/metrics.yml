@@ -113,7 +113,7 @@ jobs:
             TEST_CODE_RATIO="N/A"
           fi
 
-          cat << EOF > metrics-report.md
+          cat <<-EOF > metrics-report.md
           # 📊 Project Metrics Report
 
           **Generated:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
