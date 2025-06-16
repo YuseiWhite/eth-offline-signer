@@ -95,31 +95,44 @@ jobs:
           STARTUP_THRESHOLD=1000    # 1 second
           SIGNING_THRESHOLD=2000    # 2 seconds
           CLI_SIZE_THRESHOLD=500000 # 500KB
+          LIB_CJS_THRESHOLD=300000  # 300KB
+          LIB_ESM_THRESHOLD=300000  # 300KB
 
           FAILED=false
 
           if [ "$BUILD_TIME" -gt "$BUILD_THRESHOLD" ]; then
-            echo "::warning::Build time (${BUILD_TIME}ms) exceeds threshold (${BUILD_THRESHOLD}ms)"
+            echo "::error::Build time (${BUILD_TIME}ms) exceeds threshold (${BUILD_THRESHOLD}ms)"
             FAILED=true
           fi
 
           if [ "$STARTUP_TIME" -gt "$STARTUP_THRESHOLD" ]; then
-            echo "::warning::CLI startup time (${STARTUP_TIME}ms) exceeds threshold (${STARTUP_THRESHOLD}ms)"
+            echo "::error::CLI startup time (${STARTUP_TIME}ms) exceeds threshold (${STARTUP_THRESHOLD}ms)"
             FAILED=true
           fi
 
           if [ "$SIGNING_TIME" -gt "$SIGNING_THRESHOLD" ]; then
-            echo "::warning::Signing time (${SIGNING_TIME}ms) exceeds threshold (${SIGNING_THRESHOLD}ms)"
+            echo "::error::Signing time (${SIGNING_TIME}ms) exceeds threshold (${SIGNING_THRESHOLD}ms)"
             FAILED=true
           fi
 
           if [ "$CLI_SIZE" -gt "$CLI_SIZE_THRESHOLD" ]; then
-            echo "::warning::CLI bundle size (${CLI_SIZE} bytes) exceeds threshold (${CLI_SIZE_THRESHOLD} bytes)"
+            echo "::error::CLI bundle size (${CLI_SIZE} bytes) exceeds threshold (${CLI_SIZE_THRESHOLD} bytes)"
+            FAILED=true
+          fi
+
+          if [ "$LIB_CJS_SIZE" -gt "$LIB_CJS_THRESHOLD" ]; then
+            echo "::error::Library CJS size (${LIB_CJS_SIZE} bytes) exceeds threshold (${LIB_CJS_THRESHOLD} bytes)"
+            FAILED=true
+          fi
+
+          if [ "$LIB_ESM_SIZE" -gt "$LIB_ESM_THRESHOLD" ]; then
+            echo "::error::Library ESM size (${LIB_ESM_SIZE} bytes) exceeds threshold (${LIB_ESM_THRESHOLD} bytes)"
             FAILED=true
           fi
 
           if [ "$FAILED" = "true" ]; then
-            echo "::notice::Performance thresholds exceeded. Consider optimization."
+            echo "::error::Performance thresholds exceeded. Build failed."
+            exit 1
           else
             echo "✅ All performance thresholds met"
           fi
@@ -150,6 +163,8 @@ jobs:
           - **Startup Time Threshold:** 1000ms ✅
           - **Signing Time Threshold:** 2000ms ✅
           - **CLI Size Threshold:** 500KB ✅
+          - **Library CJS Threshold:** 300KB ✅
+          - **Library ESM Threshold:** 300KB ✅
 
           ## Environment
           - **OS:** ubuntu-latest
