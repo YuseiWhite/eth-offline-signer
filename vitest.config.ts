@@ -4,6 +4,7 @@ export const vitestConfig = defineConfig({
   test: {
     globals: false,
     environment: 'node',
+    include: ['test/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
