@@ -141,6 +141,14 @@ jobs:
         run: |
           echo "📋 Generating performance report..."
 
+          # Generate dynamic threshold indicators
+          BUILD_INDICATOR=$([ "$BUILD_TIME" -le "5000" ] && echo "✅" || echo "❌")
+          STARTUP_INDICATOR=$([ "$STARTUP_TIME" -le "1000" ] && echo "✅" || echo "❌")
+          SIGNING_INDICATOR=$([ "$SIGNING_TIME" -le "2000" ] && echo "✅" || echo "❌")
+          CLI_SIZE_INDICATOR=$([ "$CLI_SIZE" -le "500000" ] && echo "✅" || echo "❌")
+          LIB_CJS_INDICATOR=$([ "$LIB_CJS_SIZE" -le "300000" ] && echo "✅" || echo "❌")
+          LIB_ESM_INDICATOR=$([ "$LIB_ESM_SIZE" -le "300000" ] && echo "✅" || echo "❌")
+
           cat << EOF > performance-report.md
           # Performance Report
 
@@ -159,12 +167,12 @@ jobs:
           - **Library ESM:** ${LIB_ESM_SIZE} bytes ($(echo "scale=1; ${LIB_ESM_SIZE}/1024" | bc)KB)
 
           ## Thresholds
-          - **Build Time Threshold:** 5000ms ✅
-          - **Startup Time Threshold:** 1000ms ✅
-          - **Signing Time Threshold:** 2000ms ✅
-          - **CLI Size Threshold:** 500KB ✅
-          - **Library CJS Threshold:** 300KB ✅
-          - **Library ESM Threshold:** 300KB ✅
+          - **Build Time Threshold:** 5000ms ${BUILD_INDICATOR}
+          - **Startup Time Threshold:** 1000ms ${STARTUP_INDICATOR}
+          - **Signing Time Threshold:** 2000ms ${SIGNING_INDICATOR}
+          - **CLI Size Threshold:** 500KB ${CLI_SIZE_INDICATOR}
+          - **Library CJS Threshold:** 300KB ${LIB_CJS_INDICATOR}
+          - **Library ESM Threshold:** 300KB ${LIB_ESM_INDICATOR}
 
           ## Environment
           - **OS:** ubuntu-latest
