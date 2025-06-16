@@ -192,7 +192,7 @@ jobs:
 
       - name: Extract version
         id: extract_version
-        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+        run: echo "version=$(node -p 'require("./package.json").version')" >> $GITHUB_OUTPUT
 
       - name: Generate release notes
         id: release_notes
@@ -208,7 +208,7 @@ jobs:
           fi
 
           # Create release notes
-          cat << EOF > release_notes.md
+          cat <<-EOF > release_notes.md
           ## Changes in this Release
 
           ### Recent Commits
@@ -229,16 +229,16 @@ jobs:
           - pnpm ≥9.0.0 for optimal dependency management
 
           ### Installation
-          \`\`\`bash
+          ```bash
           # Using pnpm (recommended)
           pnpm add -g eth-offline-signer@${{ steps.extract_version.outputs.version }}
 
           # Using npm (also supported)
           npm install -g eth-offline-signer@${{ steps.extract_version.outputs.version }}
-          \`\`\`
+          ```
 
           ### Usage
-          \`\`\`bash
+          ```bash
           # Sign transaction with private key file
           eth-offline-signer sign --key-file private.key --params transaction.json
 
