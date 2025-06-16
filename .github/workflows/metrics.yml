@@ -1,0 +1,176 @@
+name: Project Metrics
+
+on:
+  schedule:
+    # Run weekly on Mondays at 06:00 UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  collect-metrics:
+    name: Collect Project Metrics
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for metrics
+
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Collect code metrics
+        run: |
+          echo "📊 Collecting code metrics..."
+
+          # Lines of code
+          TOTAL_LINES=$(find src -name "*.ts" -exec wc -l {} + | tail -1 | awk '{print $1}')
+          TEST_LINES=$(find test -name "*.ts" -exec wc -l {} + | tail -1 | awk '{print $1}')
+
+          # File counts
+          SRC_FILES=$(find src -name "*.ts" | wc -l)
+          TEST_FILES=$(find test -name "*.ts" | wc -l)
+
+          # Dependencies
+          PROD_DEPS=$(node -p "Object.keys(require('./package.json').dependencies || {}).length")
+          DEV_DEPS=$(node -p "Object.keys(require('./package.json').devDependencies || {}).length")
+
+          # Git metrics
+          COMMITS_LAST_WEEK=$(git log --since="1 week ago" --oneline | wc -l)
+          CONTRIBUTORS=$(git log --format='%ae' | sort -u | wc -l)
+
+          echo "TOTAL_LINES=${TOTAL_LINES}" >> $GITHUB_ENV
+          echo "TEST_LINES=${TEST_LINES}" >> $GITHUB_ENV
+          echo "SRC_FILES=${SRC_FILES}" >> $GITHUB_ENV
+          echo "TEST_FILES=${TEST_FILES}" >> $GITHUB_ENV
+          echo "PROD_DEPS=${PROD_DEPS}" >> $GITHUB_ENV
+          echo "DEV_DEPS=${DEV_DEPS}" >> $GITHUB_ENV
+          echo "COMMITS_LAST_WEEK=${COMMITS_LAST_WEEK}" >> $GITHUB_ENV
+          echo "CONTRIBUTORS=${CONTRIBUTORS}" >> $GITHUB_ENV
+
+      - name: Build and measure
+        run: |
+          echo "🔨 Building and measuring..."
+
+          # Build time measurement
+          START_TIME=$(date +%s%N)
+          pnpm run build
+          END_TIME=$(date +%s%N)
+          BUILD_TIME=$(( (END_TIME - START_TIME) / 1000000 ))
+
+          # Bundle sizes
+          CLI_SIZE=$(stat -c%s "dist/cli.cjs" 2>/dev/null || stat -f%z "dist/cli.cjs")
+          LIB_CJS_SIZE=$(stat -c%s "dist/index.cjs" 2>/dev/null || stat -f%z "dist/index.cjs")
+          LIB_ESM_SIZE=$(stat -c%s "dist/index.mjs" 2>/dev/null || stat -f%z "dist/index.mjs")
+
+          echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
+          echo "CLI_SIZE=${CLI_SIZE}" >> $GITHUB_ENV
+          echo "LIB_CJS_SIZE=${LIB_CJS_SIZE}" >> $GITHUB_ENV
+          echo "LIB_ESM_SIZE=${LIB_ESM_SIZE}" >> $GITHUB_ENV
+
+      - name: Run tests and collect coverage
+        run: |
+          echo "🧪 Running tests and collecting coverage..."
+          pnpm run test:coverage
+
+          # Extract coverage percentage safely
+          COVERAGE=$(node -p "require('./coverage/coverage-summary.json').total.lines.pct")
+          echo "COVERAGE=${COVERAGE}" >> $GITHUB_ENV
+
+      - name: Generate metrics report
+        run: |
+          echo "📋 Generating metrics report..."
+
+          cat << EOF > metrics-report.md
+          # 📊 Project Metrics Report
+
+          **Generated:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Commit:** ${{ github.sha }}
+
+          ## 📈 Code Metrics
+          | Metric | Value |
+          |--------|-------|
+          | Source Lines | ${TOTAL_LINES} |
+          | Test Lines | ${TEST_LINES} |
+          | Source Files | ${SRC_FILES} |
+          | Test Files | ${TEST_FILES} |
+          | Test Coverage | ${COVERAGE}% |
+          | Test/Code Ratio | $(echo "scale=2; ${TEST_LINES}/${TOTAL_LINES}" | bc) |
+
+          ## 📦 Dependencies
+          | Type | Count |
+          |------|-------|
+          | Production | ${PROD_DEPS} |
+          | Development | ${DEV_DEPS} |
+          | Total | $((PROD_DEPS + DEV_DEPS)) |
+
+          ## ⚡ Performance
+          | Metric | Value |
+          |--------|-------|
+          | Build Time | ${BUILD_TIME}ms |
+          | CLI Bundle | $(echo "scale=1; ${CLI_SIZE}/1024" | bc)KB |
+          | Library CJS | $(echo "scale=1; ${LIB_CJS_SIZE}/1024" | bc)KB |
+          | Library ESM | $(echo "scale=1; ${LIB_ESM_SIZE}/1024" | bc)KB |
+
+          ## 👥 Activity
+          | Metric | Value |
+          |--------|-------|
+          | Commits (Last Week) | ${COMMITS_LAST_WEEK} |
+          | Contributors | ${CONTRIBUTORS} |
+
+          ## 🎯 Health Score
+          $(if [ "${COVERAGE}" -ge "90" ]; then echo "✅ Coverage: Excellent (${COVERAGE}%)"; else echo "⚠️ Coverage: Needs Improvement (${COVERAGE}%)"; fi)
+          $(if [ "${BUILD_TIME}" -le "5000" ]; then echo "✅ Build Speed: Fast (${BUILD_TIME}ms)"; else echo "⚠️ Build Speed: Slow (${BUILD_TIME}ms)"; fi)
+          $(if [ "${CLI_SIZE}" -le "500000" ]; then echo "✅ Bundle Size: Optimal ($(echo "scale=1; ${CLI_SIZE}/1024" | bc)KB)"; else echo "⚠️ Bundle Size: Large ($(echo "scale=1; ${CLI_SIZE}/1024" | bc)KB)"; fi)
+          EOF
+
+      - name: Generate health metrics
+        run: |
+          echo "📊 Calculating project health metrics..."
+
+          # Create metrics badge data
+          HEALTH_SCORE=0
+          if [ "${COVERAGE}" -ge "90" ]; then HEALTH_SCORE=$((HEALTH_SCORE + 1)); fi
+          if [ "${BUILD_TIME}" -le "5000" ]; then HEALTH_SCORE=$((HEALTH_SCORE + 1)); fi
+          if [ "${CLI_SIZE}" -le "500000" ]; then HEALTH_SCORE=$((HEALTH_SCORE + 1)); fi
+
+          HEALTH_PERCENTAGE=$((HEALTH_SCORE * 33))
+          if [ "${HEALTH_SCORE}" -eq "3" ]; then HEALTH_PERCENTAGE=100; fi
+
+          # Generate badge color
+          if [ "${HEALTH_PERCENTAGE}" -ge "80" ]; then
+            BADGE_COLOR="brightgreen"
+          elif [ "${HEALTH_PERCENTAGE}" -ge "60" ]; then
+            BADGE_COLOR="yellow"
+          else
+            BADGE_COLOR="red"
+          fi
+
+          echo "Project Health: ${HEALTH_PERCENTAGE}% (${HEALTH_SCORE}/3 checks passing)"
+          echo "HEALTH_PERCENTAGE=${HEALTH_PERCENTAGE}" >> $GITHUB_ENV
+          echo "BADGE_COLOR=${BADGE_COLOR}" >> $GITHUB_ENV
+
+      - name: Upload metrics report
+        uses: actions/upload-artifact@v3
+        with:
+          name: metrics-report-${{ github.run_number }}
+          path: |
+            metrics-report.md
+            coverage/
+          retention-days: 30
+
+      - name: Create metrics issue (weekly)
+        if: github.event.schedule
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('metrics-report.md', 'utf8');
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `📊 Weekly Metrics Report - ${new Date().toISOString().split('T')[0]}`,
+              body: report,
+              labels: ['metrics', 'automated', 'weekly-report']
+            }); 
