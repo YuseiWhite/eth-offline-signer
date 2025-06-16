@@ -20,12 +20,12 @@ jobs:
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
 
-      - name: Build application
-        run: pnpm run build
-
       - name: Measure build performance
         run: |
           echo "📊 Measuring build performance..."
+
+          # Clean output directory for accurate measurement
+          rm -rf dist/
 
           # Measure build time
           START_TIME=$(date +%s%N)
@@ -149,7 +149,7 @@ jobs:
           LIB_CJS_INDICATOR=$([ "$LIB_CJS_SIZE" -le "300000" ] && echo "✅" || echo "❌")
           LIB_ESM_INDICATOR=$([ "$LIB_ESM_SIZE" -le "300000" ] && echo "✅" || echo "❌")
 
-          cat << EOF > performance-report.md
+          cat <<-EOF > performance-report.md
           # Performance Report
 
           **Generated:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
