@@ -124,3 +124,32 @@ async function readPrivateKeyFile(keyFilePath: string): Promise<string> {
     );
   }
 }
+
+/**
+ * 秘密鍵の検証と正規化
+ * @param privateKey 検証・正規化対象の秘密鍵文字列
+ * @returns 0xプレフィックス付きの正規化された秘密鍵
+ * @throws PrivateKeyError 無効な形式の場合
+ */
+function validateAndNormalizePrivateKey(privateKey: string): string {
+  if (!privateKey) {
+    throw new PrivateKeyError('秘密鍵が空です。');
+  }
+
+  // 0xプレフィックスがない場合は追加
+  let normalizedKey = privateKey;
+  if (!privateKey.startsWith('0x')) {
+    console.info('🔧 秘密鍵に0xプレフィックスを追加しました (ソース: file)');
+    normalizedKey = `0x${privateKey}`;
+  }
+
+  // 秘密鍵の形式検証 (64文字の16進数文字列、0xプレフィックス付き)
+  const pkRegex = /^0x[0-9a-fA-F]{64}$/;
+  if (!pkRegex.test(normalizedKey)) {
+    throw new PrivateKeyError(
+      '無効な秘密鍵形式です。秘密鍵は0xプレフィックス付きの64文字の16進数文字列である必要があります。ソース: file'
+    );
+  }
+
+  return normalizedKey;
+}
