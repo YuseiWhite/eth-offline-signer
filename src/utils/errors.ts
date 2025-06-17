@@ -48,3 +48,45 @@ export class NetworkError extends EthOfflineSignerError {}
  * @description トランザクション送信・確認失敗時に使用
  */
 export class BroadcastError extends EthOfflineSignerError {}
+
+/**
+ * Nonce未設定エラー
+ * @description オフライン署名でNonceが未定義の場合に使用
+ */
+export class MissingNonceError extends SigningError {
+  constructor() {
+    super('Transaction nonce is undefined. Nonce must be explicitly provided for offline signing.');
+  }
+}
+
+/**
+ * Nonce値過大エラー
+ * @description 指定Nonceが現在のアカウントNonceより大きい場合に使用
+ */
+export class NonceTooHighError extends SigningError {}
+
+/**
+ * Nonce値過小エラー（推奨値付き）
+ * @description 指定Nonceが使用済みで、推奨Nonce値を提供
+ */
+export class NonceTooLowError extends SigningError {
+  public readonly recommendedNonce: number;
+
+  constructor(message: string, recommendedNonce: number) {
+    super(message);
+    this.recommendedNonce = recommendedNonce;
+  }
+}
+
+/**
+ * トランザクション置換エラー（置換ハッシュ付き）
+ * @description 同一Nonceの別トランザクションが存在する場合に使用
+ */
+export class TransactionReplacementError extends SigningError {
+  public readonly replacementHash: string;
+
+  constructor(message: string, replacementHash: string) {
+    super(message);
+    this.replacementHash = replacementHash;
+  }
+}
