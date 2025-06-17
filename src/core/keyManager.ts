@@ -57,9 +57,7 @@ class SecureKeyStorage {
       this.keyBuffer.fill(0xff);
       // Pass 3: ランダムパターンでオーバーライト
       const randomBytes = Buffer.allocUnsafe(this.keyBuffer.length);
-      for (let i = 0; i < randomBytes.length; i++) {
-        randomBytes[i] = Math.floor(Math.random() * 256);
-      }
+      randomFillSync(randomBytes);
       randomBytes.copy(this.keyBuffer);
       // Pass 4: 最終ゼロクリア
       this.keyBuffer.fill(0x00);
