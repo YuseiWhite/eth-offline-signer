@@ -53,7 +53,7 @@ class SecureKeyStorage {
       // Pass 1: ゼロクリア
       this.keyBuffer.fill(0x00);
       // Pass 2: 全ビット1でオーバーライト
-      this.keyBuffer.fill(0xFF);
+      this.keyBuffer.fill(0xff);
       // Pass 3: ランダムパターンでオーバーライト
       const randomBytes = Buffer.allocUnsafe(this.keyBuffer.length);
       for (let i = 0; i < randomBytes.length; i++) {
@@ -202,7 +202,6 @@ export async function loadPrivateKey(keyFilePath: string): Promise<LoadPrivateKe
 
     // 5. 結果オブジェクトの作成と返却
     return createPrivateKeyResult(secureStorage);
-
   } catch (error: unknown) {
     // エラー時も確実にクリーンアップを実行
     secureStorage.cleanup();
