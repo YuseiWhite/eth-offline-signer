@@ -30,3 +30,21 @@ export class PrivateKeyError extends EthOfflineSignerError {}
  * @description ファイル読み込み・権限・存在確認エラー時に使用
  */
 export class FileAccessError extends EthOfflineSignerError {}
+
+/**
+ * トランザクション署名エラー
+ * @description viem署名処理・アカウント作成エラー時に使用
+ */
+export class SigningError extends EthOfflineSignerError {}
+
+/**
+ * ネットワーク接続エラー
+ * @description RPC接続・チェーンID不正・ネットワーク障害時に使用
+ */
+export class NetworkError extends EthOfflineSignerError {}
+
+/**
+ * ブロードキャストエラー
+ * @description トランザクション送信・確認失敗時に使用
+ */
+export class BroadcastError extends EthOfflineSignerError {}
