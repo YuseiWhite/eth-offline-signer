@@ -153,3 +153,20 @@ function validateAndNormalizePrivateKey(privateKey: string): string {
 
   return normalizedKey;
 }
+
+/**
+ * 秘密鍵結果オブジェクトの作成
+ * @param secureStorage 設定済みのセキュアストレージインスタンス
+ * @returns loadPrivateKey結果オブジェクト
+ */
+function createPrivateKeyResult(secureStorage: SecureKeyStorage): LoadPrivateKeyResult {
+  // viem互換性のため、直接的な秘密鍵アクセスを提供
+  const privateKey = secureStorage.getKey();
+
+  // セキュアなクリーンアップ関数
+  const cleanup = () => {
+    secureStorage.cleanup();
+  };
+
+  return { privateKey, cleanup };
+}
