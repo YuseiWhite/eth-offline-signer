@@ -90,13 +90,13 @@ async function checkKeyFilePermissions(keyFilePath: string): Promise<void> {
     const stats = await fs.stat(keyFilePath);
     const permissions = (stats.mode & 0o777).toString(8); // 8進数でパーミッション取得
     if (permissions !== '400') {
-      console.error(
+      console.warn(
         `警告: 秘密鍵ファイル (${keyFilePath}) のパーミッションが400ではありません (現在のパーミッション: ${permissions})。セキュリティリスクを避けるため、chmod 400 ${path.basename(keyFilePath)} でパーミッションを修正することを強く推奨します。`
       );
     }
   } else {
     // Windowsの場合、POSIXスタイルのパーミッションチェックは直接適用できない
-    console.error(
+    console.warn(
       `警告: Windows環境では秘密鍵ファイル (${keyFilePath}) のPOSIXパーミッションチェックはスキップされます。ファイルが適切に保護されていることを確認してください。`
     );
   }
