@@ -79,3 +79,26 @@ function forceGarbageCollection(): void {
     global.gc();
   }
 }
+
+/**
+ * 秘密鍵ファイルのパーミッションチェック
+ * @param keyFilePath チェック対象の秘密鍵ファイルパス
+ * @description POSIXシステムでは400パーミッションを推奨、Windowsでは警告のみ
+ */
+async function checkKeyFilePermissions(keyFilePath: string): Promise<void> {
+  if (process.platform !== 'win32') {
+    // Windows以外で実行
+    const stats = await fs.stat(keyFilePath);
+    const permissions = (stats.mode & 0o777).toString(8); // 8進数でパーミッション取得
+    if (permissions !== '400') {
+      console.error(
+        `警告: 秘密鍵ファイル (${keyFilePath}) のパーミッションが400ではありません (現在のパーミッション: ${permissions})。セキュリティリスクを避けるため、chmod 400 ${path.basename(keyFilePath)} でパーミッションを修正することを強く推奨します。`
+      );
+    }
+  } else {
+    // Windowsの場合、POSIXスタイルのパーミッションチェックは直接適用できない
+    console.error(
+      `警告: Windows環境では秘密鍵ファイル (${keyFilePath}) のPOSIXパーミッションチェックはスキップされます。ファイルが適切に保護されていることを確認してください。`
+    );
+  }
+}
