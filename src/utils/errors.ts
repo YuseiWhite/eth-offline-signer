@@ -90,3 +90,31 @@ export class TransactionReplacementError extends SigningError {
     this.replacementHash = replacementHash;
   }
 }
+
+/**
+ * CLI統合エラーハンドラー
+ * @param error 処理対象のエラー（任意の型）
+ * @param exit プロセス終了フラグ（デフォルト: true）
+ * @description カスタムエラーは日本語メッセージ、その他は英語メッセージでコンソール出力
+ */
+export function handleCliError(error: unknown, exit = true): void {
+  let errorMessage = 'An unknown error occurred.';
+
+  if (error instanceof EthOfflineSignerError) {
+    errorMessage = error.message;
+  } else if (error instanceof Error) {
+    // 予期しない標準エラーオブジェクトの場合
+    errorMessage = `An unexpected error occurred: ${error.message}`;
+    // デバッグ用にスタックトレースを出力することも検討できるが、
+    // ユーザー向けにはシンプルなメッセージが良い。CI環境などではスタックも有用。
+    // console.error(error.stack); // デバッグ用
+  } else if (typeof error === 'string') {
+    errorMessage = error;
+  }
+
+  console.error(`Error: ${errorMessage}`);
+
+  if (exit) {
+    process.exit(1);
+  }
+}
