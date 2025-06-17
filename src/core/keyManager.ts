@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { randomFillSync } from 'node:crypto';
 import { FileAccessError, PrivateKeyError } from '../utils/errors';
 
 /**
