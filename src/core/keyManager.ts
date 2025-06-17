@@ -68,3 +68,14 @@ class SecureKeyStorage {
     this.isCleanedUp = true;
   }
 }
+
+/**
+ * 開発環境でのガベージコレクション強制実行
+ * @description メモリクリーンアップを促進するため、開発環境でのみGCを強制実行
+ */
+function forceGarbageCollection(): void {
+  // 開発環境でのみ強制GCを実行
+  if (typeof global !== 'undefined' && global.gc && process.env.NODE_ENV === 'development') {
+    global.gc();
+  }
+}
