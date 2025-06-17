@@ -102,3 +102,25 @@ async function checkKeyFilePermissions(keyFilePath: string): Promise<void> {
     );
   }
 }
+
+/**
+ * 秘密鍵ファイルの読み込み
+ * @param keyFilePath 読み込み対象の秘密鍵ファイルパス
+ * @returns 読み込んだ秘密鍵文字列（前処理なし）
+ * @throws FileAccessError ファイル読み込みに失敗した場合
+ */
+async function readPrivateKeyFile(keyFilePath: string): Promise<string> {
+  try {
+    // 非同期ファイル読み込み
+    return (await fs.readFile(keyFilePath, 'utf-8')).trim();
+  } catch (error: unknown) {
+    const errorObj = error as Error & { code?: string };
+    if (errorObj.code === 'ENOENT') {
+      throw new FileAccessError(`秘密鍵ファイルが見つかりません: ${keyFilePath}`);
+    }
+    const errorMessage = errorObj.message || String(error);
+    throw new FileAccessError(
+      `秘密鍵ファイル (${keyFilePath}) の読み込みに失敗しました: ${errorMessage}`
+    );
+  }
+}
