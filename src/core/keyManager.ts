@@ -48,7 +48,7 @@ class SecureKeyStorage {
    * @description メモリ上の秘密鍵データを確実に削除
    */
   cleanup(): void {
-    // Bufferの複数回オーバーライト（DoD 5220.22-M準拠の3パス削除）
+    // Bufferの複数回オーバーライト（DoD 5220.22-M準拠の4パス削除）
     if (this.keyBuffer && !this.isCleanedUp) {
       // Pass 1: ゼロクリア
       this.keyBuffer.fill(0x00);
