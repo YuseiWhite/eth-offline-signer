@@ -170,3 +170,54 @@ function createPrivateKeyResult(secureStorage: SecureKeyStorage): LoadPrivateKey
 
   return { privateKey, cleanup };
 }
+
+/**
+ * 秘密鍵ファイルの安全な読み込み
+ * @param keyFilePath 秘密鍵ファイルのパス（相対パス・絶対パス両対応）
+ * @returns 検証済み秘密鍵とクリーンアップ関数
+ * @throws PrivateKeyError 秘密鍵形式が無効な場合
+ * @throws FileAccessError ファイル読み込みに失敗した場合
+ * @description POSIXシステムでは400パーミッションを推奨、Windowsでは警告のみ
+ */
+export async function loadPrivateKey(keyFilePath: string): Promise<LoadPrivateKeyResult> {
+  if (!keyFilePath) {
+    throw new PrivateKeyError('秘密鍵ファイルのパスが指定されていません。');
+  }
+
+  const resolvedKeyFilePath = path.resolve(keyFilePath);
+  const secureStorage = new SecureKeyStorage();
+
+  try {
+    // 1. 秘密鍵ファイルのパーミッションチェック
+    await checkKeyFilePermissions(resolvedKeyFilePath);
+
+    // 2. 秘密鍵ファイルからの読み込み
+    const rawPrivateKey = await readPrivateKeyFile(resolvedKeyFilePath);
+
+    // 3. 秘密鍵の検証と正規化
+    const normalizedPrivateKey = validateAndNormalizePrivateKey(rawPrivateKey);
+
+    // 4. セキュアストレージに保存
+    secureStorage.store(normalizedPrivateKey);
+
+    // 5. 結果オブジェクトの作成と返却
+    return createPrivateKeyResult(secureStorage);
+
+  } catch (error: unknown) {
+    // エラー時も確実にクリーンアップを実行
+    secureStorage.cleanup();
+
+    if (error instanceof PrivateKeyError || error instanceof FileAccessError) {
+      throw error;
+    }
+
+    // 予期しないエラーの処理
+    const errorMessage = (error as Error).message || String(error);
+    throw new FileAccessError(
+      `秘密鍵ファイル (${resolvedKeyFilePath}) の処理中に予期しないエラーが発生しました: ${errorMessage}`
+    );
+  } finally {
+    // ガベージコレクション強制実行（開発環境のみ）
+    forceGarbageCollection();
+  }
+}
