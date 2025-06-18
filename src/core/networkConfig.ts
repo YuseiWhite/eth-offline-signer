@@ -38,3 +38,12 @@ const BUILTIN_NETWORK_CONFIGS = {
  * @description コンパイル時型チェック用（オプショナル使用）
  */
 export type BuiltinChainId = keyof typeof BUILTIN_NETWORK_CONFIGS;
+
+/**
+ * ビルトインチェーンID判定（型ガード）
+ * @param chainId 判定対象のチェーンID
+ * @returns ビルトインチェーンIDの場合true
+ */
+export function isBuiltinChainId(chainId: number): chainId is BuiltinChainId {
+  return chainId in BUILTIN_NETWORK_CONFIGS;
+}
