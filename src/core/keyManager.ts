@@ -123,13 +123,15 @@ async function readPrivateKeyFile(keyFilePath: string): Promise<string> {
 /**
  * 秘密鍵の0xプレフィックス正規化
  * @param privateKey 正規化対象の秘密鍵文字列
+ * @param sourceInfo ソース情報（ファイルパスなど）
  * @returns 0xプレフィックス付きの秘密鍵
  */
-function normalizePrivateKeyPrefix(privateKey: string): string {
+function normalizePrivateKeyPrefix(privateKey: string, sourceInfo?: string): string {
   if (privateKey.startsWith('0x')) {
     return privateKey;
   }
-  console.info('🔧 秘密鍵に0xプレフィックスを追加しました (ソース: file)');
+  const source = sourceInfo ? `ファイル: ${sourceInfo}` : 'ファイル入力';
+  console.info(`🔧 秘密鍵に0xプレフィックスを追加しました (${source})`);
   return `0x${privateKey}`;
 }
 
@@ -150,15 +152,16 @@ function validatePrivateKeyFormat(privateKey: string): void {
 /**
  * 秘密鍵の検証と正規化
  * @param privateKey 検証・正規化対象の秘密鍵文字列
+ * @param sourceFilePath ソースファイルパス（ログ用）
  * @returns 0xプレフィックス付きの正規化された秘密鍵
  * @throws PrivateKeyError 無効な形式の場合
  */
-function validateAndNormalizePrivateKey(privateKey: string): string {
+function validateAndNormalizePrivateKey(privateKey: string, sourceFilePath?: string): string {
   if (!privateKey) {
     throw new PrivateKeyError('秘密鍵が空です。');
   }
 
-  const normalizedKey = normalizePrivateKeyPrefix(privateKey);
+  const normalizedKey = normalizePrivateKeyPrefix(privateKey, sourceFilePath);
   validatePrivateKeyFormat(normalizedKey);
   return normalizedKey;
 }
@@ -204,7 +207,7 @@ export async function loadPrivateKey(keyFilePath: string): Promise<LoadPrivateKe
   try {
     await checkKeyFilePermissions(resolvedKeyFilePath);
     const rawPrivateKey = await readPrivateKeyFile(resolvedKeyFilePath);
-    const normalizedPrivateKey = validateAndNormalizePrivateKey(rawPrivateKey);
+    const normalizedPrivateKey = validateAndNormalizePrivateKey(rawPrivateKey, resolvedKeyFilePath);
 
     secureStorage.store(normalizedPrivateKey);
     return createPrivateKeyResult(secureStorage);
