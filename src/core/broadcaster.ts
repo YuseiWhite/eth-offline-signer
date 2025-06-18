@@ -75,3 +75,13 @@ function validateRpcUrl(rpcUrl: string): void {
 function calculateTransactionHash(signedTransaction: Hex): Hex {
   return keccak256(signedTransaction);
 }
+
+/**
+ * 指数バックオフによる待機
+ * @param attempt 試行回数（0ベース）
+ * @param baseDelay ベース遅延時間（ミリ秒）
+ */
+async function exponentialBackoff(attempt: number, baseDelay: number): Promise<void> {
+  const delay = baseDelay * 2 ** attempt;
+  await new Promise((resolve) => setTimeout(resolve, delay));
+}
