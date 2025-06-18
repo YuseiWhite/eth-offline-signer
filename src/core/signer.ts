@@ -8,6 +8,18 @@ import type { EIP1559TxParams } from '../types/schema'; // Zodで検証済みの
 import { SigningError } from '../utils/errors';
 
 /**
+ * 署名関連のエラーを処理し、SigningErrorをスローするヘルパー関数
+ * @param error 元のエラーオブジェクト
+ * @param contextMessage エラーの発生コンテキストを示すメッセージ
+ * @throws SigningError フォーマットされたエラーメッセージを含むSigningError
+ * @description 重複するエラーハンドリングロジックを抽象化し、一貫したエラーメッセージを提供する
+ */
+function handleSigningError(error: unknown, contextMessage: string): never {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  throw new SigningError(`${contextMessage}: ${errorMessage}`);
+}
+
+/**
  * 秘密鍵からviemアカウントを安全に作成する
  * @param privateKey 0xプレフィックス付きの秘密鍵（keyManagerで検証済み）
  * @returns viemアカウントインスタンス
@@ -18,8 +30,7 @@ function createAccountFromPrivateKey(privateKey: `0x${string}`): PrivateKeyAccou
   try {
     return privateKeyToAccount(privateKey);
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new SigningError(`秘密鍵からアカウントの作成に失敗しました: ${errorMessage}`);
+    handleSigningError(error, '秘密鍵からアカウントの作成に失敗しました');
   }
 }
 
@@ -35,8 +46,7 @@ function safeStringToBigInt(value: string, fieldName: string): bigint {
   try {
     return BigInt(value);
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new SigningError(`${fieldName}のBigInt変換に失敗しました: ${errorMessage}`);
+    handleSigningError(error, `${fieldName}のBigInt変換に失敗しました`);
   }
 }
 
@@ -85,8 +95,7 @@ async function signTransactionWithAccount(
   try {
     return await account.signTransaction(transactionRequest);
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new SigningError(`トランザクションの署名に失敗しました: ${errorMessage}`);
+    handleSigningError(error, 'トランザクションの署名に失敗しました');
   }
 }
 
