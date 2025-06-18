@@ -264,3 +264,16 @@ export function getNetworkConfig(
   validateNetworkConfig(config, chainId);
   return config;
 }
+
+/**
+ * サポートされている全ネットワークの取得
+ * @returns サポートネットワークのリスト
+ */
+export function getAllSupportedNetworks(): Array<{ chainId: number; config: NetworkConfig }> {
+  return Object.entries(BUILTIN_NETWORK_CONFIGS).map(([chainId, config]) => {
+    return {
+      chainId: Number(chainId),
+      config: config,
+    };
+  });
+}
