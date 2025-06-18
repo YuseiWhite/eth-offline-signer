@@ -140,3 +140,19 @@ async function fetchTransactionFromRpc(
   const message = lastError?.message || 'Unknown error';
   throw new BroadcastError(`RPC取得失敗（${maxRetries + 1}回試行）: ${message}`);
 }
+
+/**
+ * 既知エラーの判定
+ * @param error 判定対象のエラーオブジェクト
+ * @returns 既知のエラーであればtrue、そうでなければfalse
+ */
+function isKnownTransactionError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  const errorObj = error as Error & { details?: string };
+  return (
+    (typeof errorObj.details === 'string' && errorObj.details.includes('already known')) ||
+    errorObj.message.includes('already known')
+  );
+}
