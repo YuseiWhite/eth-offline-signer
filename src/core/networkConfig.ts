@@ -17,7 +17,7 @@ export interface NetworkConfig {
  */
 export type NetworkConfigOverrides = Record<number, Partial<NetworkConfig>>;
 
-/**　s
+/**
  * 不変のネットワーク設定（読み取り専用）
  * @description セキュリティ強化：意図しない設定変更を防止
  */
