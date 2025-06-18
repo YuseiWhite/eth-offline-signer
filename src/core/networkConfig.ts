@@ -215,3 +215,52 @@ function mergeNetworkConfigs(overrides: NetworkConfigOverrides): Record<number, 
 
   return result;
 }
+
+/**
+ * ネットワーク設定の取得と検証（型安全版）
+ * @param chainId ビルトインチェーンID
+ * @param customNetworkConfigs カスタムネットワーク設定
+ * @returns 検証済みのネットワーク設定（必ず存在することが保証される）
+ */
+export function getNetworkConfig(
+  chainId: BuiltinChainId,
+  customNetworkConfigs?: NetworkConfigOverrides
+): NetworkConfig;
+
+/**
+ * ネットワーク設定の取得と検証（動的版）
+ * @param chainId 任意のチェーンID
+ * @param customNetworkConfigs カスタムネットワーク設定
+ * @returns 検証済みのネットワーク設定
+ * @throws NetworkError 設定が存在しないか不完全な場合
+ */
+export function getNetworkConfig(
+  chainId: number,
+  customNetworkConfigs?: NetworkConfigOverrides
+): NetworkConfig;
+
+/**
+ * ネットワーク設定の取得と検証（実装）
+ * @param chainId チェーンID
+ * @param customNetworkConfigs カスタムネットワーク設定
+ * @returns 検証済みのネットワーク設定
+ * @throws NetworkError 設定が存在しないか不完全な場合
+ */
+export function getNetworkConfig(
+  chainId: number,
+  customNetworkConfigs?: NetworkConfigOverrides
+): NetworkConfig {
+  validateChainId(chainId);
+
+  const configs = customNetworkConfigs
+    ? mergeNetworkConfigs(customNetworkConfigs)
+    : (BUILTIN_NETWORK_CONFIGS as Record<number, NetworkConfig>);
+
+  const config = configs[chainId];
+  if (!config) {
+    throw new NetworkError(`サポートされていないチェーンID: ${chainId}`);
+  }
+
+  validateNetworkConfig(config, chainId);
+  return config;
+}
