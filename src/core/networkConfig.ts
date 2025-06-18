@@ -136,3 +136,82 @@ function validateChainId(chainId: number): void {
     throw new NetworkError(`不正なチェーンID: ${chainId}`);
   }
 }
+
+/**
+ * ビルトインネットワーク設定の取得
+ * @param chainId チェーンID
+ * @returns ネットワーク設定（存在しない場合はundefined）
+ */
+function getBuiltinNetworkConfig(chainId: number): NetworkConfig | undefined {
+  return (BUILTIN_NETWORK_CONFIGS as Record<number, NetworkConfig>)[chainId];
+}
+
+/**
+ * 新規ネットワーク設定の検証
+ * @param override 新規設定
+ * @param chainId チェーンID
+ * @throws NetworkError 設定が不完全な場合
+ */
+function validateNewNetworkConfig(override: Partial<NetworkConfig>, chainId: number): void {
+  if (!override.explorerBaseUrl || !override.name || !override.chain) {
+    throw new NetworkError(
+      `新規チェーンID ${chainId} には explorerBaseUrl, name, chain の全てが必要です`
+    );
+  }
+}
+
+/**
+ * 既存設定の部分上書き処理
+ * @param baseConfig 基本設定
+ * @param override 上書き設定
+ * @param chainId チェーンID
+ * @returns マージされた設定
+ */
+function mergeExistingConfig(
+  baseConfig: NetworkConfig,
+  override: Partial<NetworkConfig>,
+  chainId: number
+): NetworkConfig {
+  const mergedConfig = { ...baseConfig, ...override } as NetworkConfig;
+  validateNetworkConfig(mergedConfig, chainId);
+  return mergedConfig;
+}
+
+/**
+ * 新規設定の追加処理
+ * @param override 新規設定
+ * @param chainId チェーンID
+ * @returns 検証済み新規設定
+ */
+function addNewConfig(override: Partial<NetworkConfig>, chainId: number): NetworkConfig {
+  validateNewNetworkConfig(override, chainId);
+  const newConfig = override as NetworkConfig;
+  validateNetworkConfig(newConfig, chainId);
+  return newConfig;
+}
+
+/**
+ * ネットワーク設定の堅牢なマージ
+ * @param overrides 上書き設定
+ * @returns 安全にマージされた設定
+ * @throws NetworkError 設定が不正な場合
+ */
+function mergeNetworkConfigs(overrides: NetworkConfigOverrides): Record<number, NetworkConfig> {
+  const result: Record<number, NetworkConfig> = { ...BUILTIN_NETWORK_CONFIGS };
+
+  for (const [chainIdStr, override] of Object.entries(overrides)) {
+    const chainId = Number(chainIdStr);
+    validateChainId(chainId);
+
+    if (!override || typeof override !== 'object') {
+      continue;
+    }
+
+    const baseConfig = getBuiltinNetworkConfig(chainId);
+    result[chainId] = baseConfig
+      ? mergeExistingConfig(baseConfig, override, chainId)
+      : addNewConfig(override, chainId);
+  }
+
+  return result;
+}
