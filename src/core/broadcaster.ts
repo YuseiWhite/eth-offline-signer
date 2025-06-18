@@ -4,9 +4,11 @@ import {
   type Chain,
   type Transaction,
   createPublicClient,
+  createWalletClient,
   keccak256,
 } from 'viem';
 import { BroadcastError, NetworkError } from '../utils/errors';
+import { type NetworkConfigOverrides, getNetworkConfig } from './networkConfig';
 
 /**
  * ブロードキャスト結果の型定義
@@ -207,4 +209,79 @@ function generateExplorerUrl(transactionHash: Hex, explorerBaseUrl: string): str
   // XSS対策：URLエンコーディング
   const sanitizedHash = encodeURIComponent(transactionHash);
   return `${explorerBaseUrl}/tx/${sanitizedHash}`;
+}
+
+/**
+ * 署名済みトランザクションのブロードキャスト
+ * @param signedTransaction 署名済みトランザクション（0xプレフィックス付き）
+ * @param chainId 対象チェーンID
+ * @param rpcUrl カスタムRPCエンドポイント
+ * @param customNetworkConfigs オプション: ネットワーク設定の上書き・追加
+ * @param options オプション: ロガー、再試行設定
+ * @returns ブロードキャスト結果
+ * @throws NetworkError ネットワーク設定エラーの場合
+ * @throws BroadcastError ブロードキャスト失敗の場合
+ */
+export async function broadcastTransaction(
+  signedTransaction: Hex,
+  chainId: number,
+  rpcUrl: string,
+  customNetworkConfigs?: NetworkConfigOverrides,
+  options: BroadcastOptions = {}
+): Promise<BroadcastResult> {
+  const { logger = DEFAULT_LOGGER, maxRetries = 3, retryDelay = 1000 } = options;
+
+  // 入力検証
+  if (!signedTransaction || typeof signedTransaction !== 'string') {
+    throw new BroadcastError('署名済みトランザクションが指定されていません');
+  }
+
+  // 設定取得とRPC検証
+  const networkConfig = getNetworkConfig(chainId, customNetworkConfigs);
+  validateRpcUrl(rpcUrl);
+
+  // viemクライアント作成
+  const client = createWalletClient({
+    chain: networkConfig.chain,
+    transport: http(rpcUrl, {
+      timeout: 30000,
+      retryCount: 3,
+      retryDelay: 1000,
+    }),
+  });
+
+  // ブロードキャスト実行
+  logger.info(`🌐 ${networkConfig.name} (${networkConfig.chain.id}) へブロードキャスト中...`);
+
+  try {
+    const hash = await client.sendRawTransaction({
+      serializedTransaction: signedTransaction,
+    });
+
+    logger.info(`✅ ブロードキャスト成功: ${hash}`);
+
+    return {
+      transactionHash: hash,
+      explorerUrl: generateExplorerUrl(hash, networkConfig.explorerBaseUrl),
+    };
+  } catch (error: unknown) {
+    if (isKnownTransactionError(error)) {
+      const hash = await handleKnownTransactionError(
+        signedTransaction,
+        rpcUrl,
+        networkConfig.chain,
+        maxRetries,
+        retryDelay,
+        logger
+      );
+      return {
+        transactionHash: hash,
+        explorerUrl: generateExplorerUrl(hash, networkConfig.explorerBaseUrl),
+      };
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error(`❌ ブロードキャストエラー: ${message}`);
+    throw new BroadcastError(`ブロードキャスト失敗: ${message}`);
+  }
 }
