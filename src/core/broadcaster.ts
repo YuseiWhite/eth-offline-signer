@@ -1,4 +1,5 @@
 import type { Hex } from 'viem';
+import { keccak256 } from 'viem';
 import { NetworkError } from '../utils/errors';
 
 /**
@@ -63,4 +64,14 @@ function validateRpcUrl(rpcUrl: string): void {
     }
     throw new NetworkError(`不正なRPC URL形式: ${rpcUrl}`);
   }
+}
+
+/**
+ * トランザクションハッシュの計算
+ * @param signedTransaction 署名済みトランザクション
+ * @returns 計算されたトランザクションハッシュ
+ * @description keccak256を使用してトランザクションハッシュを計算
+ */
+function calculateTransactionHash(signedTransaction: Hex): Hex {
+  return keccak256(signedTransaction);
 }
