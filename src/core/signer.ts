@@ -89,3 +89,28 @@ async function signTransactionWithAccount(
     throw new SigningError(`トランザクションの署名に失敗しました: ${errorMessage}`);
   }
 }
+
+/**
+ * EIP-1559トランザクションのオフライン署名
+ * @param privateKey 0xプレフィックス付きの秘密鍵（keyManagerで検証済み）
+ * @param txParams EIP-1559トランザクションパラメータ（Zodで検証済み）
+ * @returns 署名済みトランザクション（0xプレフィックス付き16進数文字列）
+ * @throws SigningError アカウント作成、パラメータ変換、またはトランザクション署名に失敗した場合
+ * @description viem/accountsを使用した完全オフライン署名、ネットワーク接続不要
+ * @note セキュリティ: 秘密鍵のメモリ管理はkeyManager.tsのcleanup()関数で実行
+ */
+export async function signEIP1559TransactionOffline(
+  privateKey: `0x${string}`,
+  txParams: EIP1559TxParams
+): Promise<Hex> {
+  // 1. viemアカウントの作成
+  const account = createAccountFromPrivateKey(privateKey);
+
+  // 2. viem用トランザクションオブジェクトの準備
+  const transactionRequest = createTransactionRequest(txParams);
+
+  // 3. トランザクション署名
+  const signedTx = await signTransactionWithAccount(account, transactionRequest);
+
+  return signedTx;
+}
