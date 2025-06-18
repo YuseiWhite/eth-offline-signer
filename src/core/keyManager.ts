@@ -32,14 +32,18 @@ class SecureKeyStorage {
   /**
    * 秘密鍵文字列を取得（使用時のみ変換）
    * @returns 保存された秘密鍵文字列
-   * @throws PrivateKeyError クリーンアップ後のアクセス時
+   * @throws PrivateKeyError クリーンアップ後のアクセス時または形式不正の場合
    * @description セキュリティ上、この関数は最小限の使用に留めること
    */
   getKey(): `0x${string}` {
     if (this.isCleanedUp || !this.keyBuffer) {
       throw new PrivateKeyError('秘密鍵が既にクリーンアップされています。');
     }
-    return this.keyBuffer.toString('utf8') as `0x${string}`;
+
+    const keyString = this.keyBuffer.toString('utf8');
+    validatePrivateKeyFormat(keyString);
+
+    return keyString as `0x${string}`;
   }
 
   /**
