@@ -195,3 +195,16 @@ async function handleKnownTransactionError(
 
   throw new BroadcastError(`既知のトランザクションが確認できませんでした: ${hash}`);
 }
+
+/**
+ * エクスプローラーURLの安全な生成
+ * @param transactionHash トランザクションハッシュ
+ * @param explorerBaseUrl エクスプローラーのベースURL
+ * @returns 生成されたエクスプローラーURL
+ * @description XSS攻撃を防ぐためURLエンコーディングを実行
+ */
+function generateExplorerUrl(transactionHash: Hex, explorerBaseUrl: string): string {
+  // XSS対策：URLエンコーディング
+  const sanitizedHash = encodeURIComponent(transactionHash);
+  return `${explorerBaseUrl}/tx/${sanitizedHash}`;
+}
