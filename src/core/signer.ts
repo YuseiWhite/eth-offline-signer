@@ -69,3 +69,23 @@ function createTransactionRequest(txParams: EIP1559TxParams): TransactionSeriali
 
   return transactionRequest;
 }
+
+/**
+ * viemアカウントでトランザクションに署名する
+ * @param account viemアカウントインスタンス
+ * @param transactionRequest 署名対象のトランザクション
+ * @returns 署名済みトランザクション（0xプレフィックス付き16進数文字列）
+ * @throws SigningError トランザクション署名に失敗した場合
+ * @description viemによるトランザクション署名とエラーハンドリング
+ */
+async function signTransactionWithAccount(
+  account: PrivateKeyAccount,
+  transactionRequest: TransactionSerializableEIP1559
+): Promise<Hex> {
+  try {
+    return await account.signTransaction(transactionRequest);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new SigningError(`トランザクションの署名に失敗しました: ${errorMessage}`);
+  }
+}
