@@ -156,3 +156,42 @@ function isKnownTransactionError(error: unknown): boolean {
     errorObj.message.includes('already known')
   );
 }
+
+/**
+ * 既知のトランザクションエラーの処理
+ * @param signedTransaction 署名済みトランザクション（ハッシュ計算用）
+ * @param rpcUrl トランザクション確認用のRPCエンドポイント
+ * @param chain viemチェーン設定
+ * @param maxRetries 最大再試行回数
+ * @param retryDelay ベース遅延時間
+ * @param logger ロガーインスタンス
+ * @returns トランザクションハッシュ（確認済み）
+ * @throws BroadcastError トランザクション確認に失敗した場合
+ * @description 既知のトランザクションの存在確認とハッシュ返却
+ */
+async function handleKnownTransactionError(
+  signedTransaction: Hex,
+  rpcUrl: string,
+  chain: Chain,
+  maxRetries: number,
+  retryDelay: number,
+  logger: Logger
+): Promise<Hex> {
+  const hash = calculateTransactionHash(signedTransaction);
+  logger.info(`🔍 既知のトランザクション確認中: ${hash}`);
+
+  const transaction = await fetchTransactionFromRpc(
+    hash,
+    rpcUrl,
+    chain,
+    maxRetries,
+    retryDelay,
+    logger
+  );
+  if (transaction) {
+    logger.info(`✅ トランザクション確認済み: ${hash}`);
+    return hash;
+  }
+
+  throw new BroadcastError(`既知のトランザクションが確認できませんでした: ${hash}`);
+}
