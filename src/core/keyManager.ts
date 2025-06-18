@@ -198,6 +198,17 @@ function createPrivateKeyResult(secureStorage: SecureKeyStorage): LoadPrivateKey
 }
 
 /**
+ * 入力パスの検証
+ * @param keyFilePath 検証対象のファイルパス
+ * @throws PrivateKeyError パスが無効な場合
+ */
+function validateKeyFilePath(keyFilePath: string): void {
+  if (!keyFilePath) {
+    throw new PrivateKeyError('秘密鍵ファイルのパスが指定されていません。');
+  }
+}
+
+/**
  * 秘密鍵ファイルの安全な読み込み
  * @param keyFilePath 秘密鍵ファイルのパス（相対パス・絶対パス両対応）
  * @returns 検証済み秘密鍵とクリーンアップ関数
