@@ -285,3 +285,5 @@ export async function broadcastTransaction(
     throw new BroadcastError(`ブロードキャスト失敗: ${message}`);
   }
 }
+
+export { getNetworkInfo, getAllSupportedNetworks } from './networkConfig';
