@@ -25,7 +25,6 @@ class SecureKeyStorage {
    * @param key 保存する秘密鍵文字列
    */
   store(key: string): void {
-    // Bufferとしてのみ保存（文字列は保持しない）
     this.keyBuffer = Buffer.from(key, 'utf8');
     this.isCleanedUp = false;
   }
@@ -40,7 +39,6 @@ class SecureKeyStorage {
     if (this.isCleanedUp || !this.keyBuffer) {
       throw new PrivateKeyError('秘密鍵が既にクリーンアップされています。');
     }
-    // 使用時のみBufferから文字列に変換
     return this.keyBuffer.toString('utf8') as `0x${string}`;
   }
 
@@ -73,7 +71,6 @@ class SecureKeyStorage {
  * @description メモリクリーンアップを促進するため、開発環境でのみGCを強制実行
  */
 function forceGarbageCollection(): void {
-  // 開発環境でのみ強制GCを実行
   if (typeof global !== 'undefined' && global.gc && process.env.NODE_ENV === 'development') {
     global.gc();
   }
@@ -110,7 +107,6 @@ async function checkKeyFilePermissions(keyFilePath: string): Promise<void> {
  */
 async function readPrivateKeyFile(keyFilePath: string): Promise<string> {
   try {
-    // 非同期ファイル読み込み
     return (await fs.readFile(keyFilePath, 'utf-8')).trim();
   } catch (error: unknown) {
     const errorObj = error as Error & { code?: string };
@@ -186,14 +182,10 @@ function validateAndNormalizePrivateKey(privateKey: string): string {
  * @returns loadPrivateKey結果オブジェクト
  */
 function createPrivateKeyResult(secureStorage: SecureKeyStorage): LoadPrivateKeyResult {
-  // viem互換性のため、直接的な秘密鍵アクセスを提供
   const privateKey = secureStorage.getKey();
-
-  // セキュアなクリーンアップ関数
   const cleanup = () => {
     secureStorage.cleanup();
   };
-
   return { privateKey, cleanup };
 }
 
