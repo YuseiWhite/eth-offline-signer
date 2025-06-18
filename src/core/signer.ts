@@ -1,5 +1,10 @@
-import type { PrivateKeyAccount } from 'viem';
+import type {
+  Hex,
+  PrivateKeyAccount,
+  TransactionSerializableEIP1559,
+} from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
+import type { EIP1559TxParams } from '../types/schema'; // Zodで検証済みのパラメータ
 import { SigningError } from '../utils/errors';
 
 /**
@@ -33,4 +38,34 @@ function safeStringToBigInt(value: string, fieldName: string): bigint {
     const errorMessage = error instanceof Error ? error.message : String(error);
     throw new SigningError(`${fieldName}のBigInt変換に失敗しました: ${errorMessage}`);
   }
+}
+
+/**
+ * EIP-1559トランザクションパラメータからviem形式のリクエストオブジェクトを作成する
+ * @param txParams EIP-1559トランザクションパラメータ（Zodで検証済み）
+ * @returns viemトランザクションオブジェクト
+ * @throws SigningError BigInt変換またはアクセスリスト処理に失敗した場合
+ * @description Zodで検証済みのパラメータを安全にviem形式に変換
+ */
+function createTransactionRequest(txParams: EIP1559TxParams): TransactionSerializableEIP1559 {
+  const transactionRequest: TransactionSerializableEIP1559 = {
+    to: txParams.to as Hex, // Zodスキーマで `0x${string}` 形式を保証
+    value: safeStringToBigInt(txParams.value, 'value'),
+    chainId: txParams.chainId,
+    nonce: txParams.nonce, // 必須フィールドとして検証済み
+    gas: safeStringToBigInt(txParams.gasLimit, 'gasLimit'),
+    maxFeePerGas: safeStringToBigInt(txParams.maxFeePerGas, 'maxFeePerGas'),
+    maxPriorityFeePerGas: safeStringToBigInt(txParams.maxPriorityFeePerGas, 'maxPriorityFeePerGas'),
+    type: 'eip1559',
+  };
+
+  // アクセスリストが提供されていれば追加（EIP-2930のオプション機能）
+  if (txParams.accessList && txParams.accessList.length > 0) {
+    transactionRequest.accessList = txParams.accessList.map((item) => ({
+      address: item.address as Hex,
+      storageKeys: item.storageKeys as Hex[],
+    }));
+  }
+
+  return transactionRequest;
 }
