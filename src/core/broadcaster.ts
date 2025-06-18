@@ -286,4 +286,4 @@ export async function broadcastTransaction(
   }
 }
 
-export { getNetworkInfo, getAllSupportedNetworks } from './networkConfig';
+export { getAllSupportedNetworks } from './networkConfig';
