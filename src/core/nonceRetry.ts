@@ -171,3 +171,24 @@ function buildSuccessResult(
 
   return successResult;
 }
+
+/**
+ * 失敗結果の構築
+ * @param finalNonce 最終Nonce
+ * @param retryCount リトライ回数
+ * @param error エラーオブジェクト
+ * @returns 失敗結果オブジェクト
+ * @description 失敗結果の構築のみ
+ */
+function buildFailureResult(
+  finalNonce: number,
+  retryCount: number,
+  error: Error | null
+): NonceRetryResult {
+  return {
+    success: false,
+    finalNonce,
+    retryCount,
+    error: error || new Error('不明なエラーが発生しました'),
+  };
+}
