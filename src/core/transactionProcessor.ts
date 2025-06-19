@@ -1,3 +1,7 @@
+import { http, createPublicClient } from 'viem';
+import type { Hex } from 'viem';
+import type { EIP1559TxParams } from '../types/schema';
+
 /**
  * ロガーインターフェース
  * @description テスト可能性のための依存性注入パターン
@@ -166,3 +170,48 @@ function buildErrorBroadcastResult(
 
   return result;
 }
+
+/**
+ * トランザクションレシートの取得と結果構築
+ * @param retryResult Nonceリトライ処理の成功結果
+ * @param txParams トランザクションパラメータ（チェーンID取得用）
+ * @param rpcUrl レシート取得用RPCエンドポイント
+ * @param logger ロガー
+ * @returns ブロードキャスト結果（ブロック情報とガス使用量を含む）
+ * @throws Error トランザクションハッシュが存在しない場合
+ * @description waitForTransactionReceiptでマイニング完了を待機、エラー時もハッシュは表示
+ */
+async function handleTransactionReceipt(
+  retryResult: NonceRetryResult,
+  txParams: EIP1559TxParams,
+  rpcUrl: string,
+  logger: Logger
+): Promise<NonNullable<TransactionProcessorResult['broadcast']>> {
+  if (!retryResult.transactionHash) {
+    throw new Error('Transaction hash is required for receipt handling');
+  }
+
+  try {
+    logger.info('⏳ トランザクションのマイニング完了を待機中...');
+
+    const chainConfig = getChainConfig(txParams.chainId);
+    const publicClient = createPublicClient({
+      chain: chainConfig,
+      transport: http(rpcUrl),
+    });
+
+    const receipt = await publicClient.waitForTransactionReceipt({
+      hash: retryResult.transactionHash,
+    });
+
+    logTransactionSuccess(retryResult, receipt, logger);
+    return buildSuccessBroadcastResult(retryResult, receipt);
+  } catch (receiptError: unknown) {
+    const errorMessage =
+      receiptError instanceof Error ? receiptError.message : String(receiptError);
+
+    logTransactionError(retryResult, errorMessage, logger);
+    return buildErrorBroadcastResult(retryResult, errorMessage);
+  }
+}
+
