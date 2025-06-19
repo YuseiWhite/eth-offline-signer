@@ -25,6 +25,19 @@ const DEFAULT_LOGGER: Logger = {
 };
 
 /**
+ * トランザクション処理オプション設定
+ * @description 署名からブロードキャストまでの統合処理に必要な全パラメータ
+ */
+export interface TransactionProcessorOptions {
+  readonly privateKey: `0x${string}`;
+  readonly txParams: EIP1559TxParams;
+  readonly rpcUrl?: string;
+  readonly broadcast: boolean;
+  readonly maxRetries?: number;
+  readonly logger?: Logger;
+}
+
+/**
  * ブロードキャストステータス
  * @description ブロードキャスト処理の詳細な状態を表現
  */
