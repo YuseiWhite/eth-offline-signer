@@ -147,10 +147,10 @@ function logTransactionError(
   errorMessage: string,
   logger: Logger
 ): void {
-  logger.info(`⚠️  レシート取得エラー（トランザクションは送信済み）: ${errorMessage}`);
-  logger.info(`📋 トランザクションハッシュ: ${retryResult.transactionHash}`);
+  logger.error(`⚠️  レシート取得エラー（トランザクションは送信済み）: ${errorMessage}`);
+  logger.error(`📋 トランザクションハッシュ: ${retryResult.transactionHash}`);
   if (retryResult.explorerUrl) {
-    logger.info(`🔗 エクスプローラーURL: ${retryResult.explorerUrl}`);
+    logger.error(`🔗 エクスプローラーURL: ${retryResult.explorerUrl}`);
   }
 }
 
