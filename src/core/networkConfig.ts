@@ -54,22 +54,20 @@ const BUILTIN_NETWORK_CONFIGS = {
   31337: {
     explorerBaseUrl: 'http://localhost:8545',
     name: 'Anvil Local Network',
-    chain: {
-      ...anvil,
-      rpcUrls: {
-        ...anvil.rpcUrls,
-        default: {
-          http: [getAnvilRpcUrl()],
+    chain: (() => {
+      const anvilRpcUrl = getAnvilRpcUrl();
+      return {
+        ...anvil,
+        rpcUrls: {
+          default: { http: [anvilRpcUrl] },
+          public: { http: [anvilRpcUrl] },
         },
-        public: {
-          http: [getAnvilRpcUrl()],
+        blockExplorers: {
+          default: { name: 'Anvil', url: 'http://localhost:8545' },
         },
-      },
-      blockExplorers: {
-        default: { name: 'Anvil', url: 'http://localhost:8545' },
-      },
-      testnet: true,
-    },
+        testnet: true,
+      };
+    })(),
   },
 } as const satisfies Record<number, NetworkConfig>;
 
