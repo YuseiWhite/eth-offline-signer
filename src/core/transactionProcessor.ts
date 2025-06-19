@@ -2,6 +2,9 @@ import { http, createPublicClient } from 'viem';
 import type { Hex } from 'viem';
 import { hoodi, sepolia } from 'viem/chains';
 import type { EIP1559TxParams } from '../types/schema';
+import { broadcastTransaction } from './broadcaster';
+import { type NonceRetryResult, executeWithNonceRetry } from './nonceRetry';
+import { signEIP1559TransactionOffline } from './signer';
 
 /**
  * ロガーインターフェース
@@ -237,3 +240,55 @@ async function handleTransactionReceipt(
   }
 }
 
+/**
+ * ブロードキャスト処理の実行
+ * @param privateKey 署名用秘密鍵
+ * @param txParams トランザクションパラメータ
+ * @param rpcUrl ブロードキャスト先RPCエンドポイント
+ * @param maxRetries Nonceエラー時の最大リトライ回数
+ * @param logger ロガー
+ * @returns ブロードキャスト結果（成功・失敗情報とレシート詳細）
+ * @description Nonceリトライ機能付きで署名・ブロードキャスト・レシート取得を統合実行
+ */
+async function handleBroadcast(
+  privateKey: `0x${string}`,
+  txParams: EIP1559TxParams,
+  rpcUrl: string,
+  maxRetries: number,
+  logger: Logger
+): Promise<NonNullable<TransactionProcessorResult['broadcast']>> {
+  logger.info('📡 トランザクションをブロードキャスト中...');
+
+  // トランザクション実行関数を定義（nonceRetryで使用）
+  const executeTransaction = async (nonce: number) => {
+    const txParamsWithNonce = { ...txParams, nonce };
+    const signedTx = await signEIP1559TransactionOffline(privateKey, txParamsWithNonce);
+    return await broadcastTransaction(signedTx, txParams.chainId, rpcUrl);
+  };
+
+  const retryResult = await executeWithNonceRetry({
+    maxRetries,
+    executeTransaction,
+    txParams,
+    logger,
+  });
+
+  if (retryResult.success && retryResult.transactionHash) {
+    logger.info('🎉 ブロードキャスト成功!');
+    if (retryResult.explorerUrl) {
+      logger.info('🔗 エクスプローラーURL準備中...');
+    }
+
+    return await handleTransactionReceipt(retryResult, txParams, rpcUrl, logger);
+  }
+
+  logger.info(`❌ ブロードキャスト失敗: ${retryResult.error?.message}`);
+
+  return {
+    success: false,
+    status: 'FAILED',
+    finalNonce: retryResult.finalNonce,
+    retryCount: retryResult.retryCount,
+    error: retryResult.error?.message || 'Unknown error',
+  };
+}
