@@ -1,10 +1,10 @@
 import { http, createPublicClient } from 'viem';
 import type { Hex } from 'viem';
-import { hoodi, sepolia } from 'viem/chains';
 import type { EIP1559TxParams } from '../types/schema';
 import { broadcastTransaction } from './broadcaster';
 import { type NonceRetryResult, executeWithNonceRetry } from './nonceRetry';
 import { signEIP1559TransactionOffline } from './signer';
+import { getNetworkConfig } from './networkConfig';
 
 /**
  * ロガーインターフェース
@@ -99,20 +99,11 @@ function validateProcessorOptions(
  * @param chainId 対象チェーンID
  * @returns viemチェーン設定
  * @throws Error 未知のチェーンIDの場合
- * @description Sepolia、Hoodi、Anvil（31337）をサポート、未知IDはエラー
+ * @description networkConfigから正しいチェーン設定を取得
  */
 function getChainConfig(chainId: number) {
-  switch (chainId) {
-    case 11155111:
-      return sepolia;
-    case 560048:
-      return hoodi;
-    case 31337:
-      // Anvil Local Network
-      return sepolia;
-    default:
-      throw new Error(`未対応のチェーンID: ${chainId}。サポートされているチェーンID: 11155111 (Sepolia), 560048 (Hoodi), 31337 (Anvil)`);
-  }
+  const networkConfig = getNetworkConfig(chainId);
+  return networkConfig.chain;
 }
 
 /**
