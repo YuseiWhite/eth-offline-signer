@@ -292,3 +292,46 @@ async function handleBroadcast(
     error: retryResult.error?.message || 'Unknown error',
   };
 }
+
+/**
+ * トランザクション処理の統合実行
+ * @param options 処理オプション（秘密鍵、パラメータ、ブロードキャスト設定等）
+ * @returns 処理結果（署名済みトランザクションとブロードキャスト結果）
+ * @throws Error バリデーション失敗またはブロードキャスト指定時にRPC URLが未設定の場合
+ * @description オフライン署名からブロードキャスト、レシート取得までの一連の処理を統合
+ */
+export async function processTransaction(
+  options: TransactionProcessorOptions
+): Promise<TransactionProcessorResult> {
+  validateProcessorOptions(options);
+
+  const {
+    privateKey,
+    txParams,
+    rpcUrl,
+    broadcast,
+    maxRetries = 3,
+    logger = DEFAULT_LOGGER,
+  } = options;
+
+  // 1. オフライン署名の実行
+  const signedTransaction = await signEIP1559TransactionOffline(privateKey, txParams);
+  logger.info(`✅ オフライン署名完了: ${signedTransaction}`);
+
+  const result: TransactionProcessorResult = {
+    signedTransaction,
+  };
+
+  // 2. 署名したtxのブロードキャスト（オプション）
+  if (broadcast) {
+    result.broadcast = await handleBroadcast(privateKey, txParams, rpcUrl!, maxRetries, logger);
+  } else {
+    logger.info(
+      'ℹ️  --broadcastオプションが指定されていないため、署名されたトランザクションは送信されませんでした。'
+    );
+    logger.info('📋 署名されたトランザクション（16進数）:');
+    logger.info(signedTransaction);
+  }
+
+  return result;
+}
