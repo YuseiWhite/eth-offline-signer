@@ -106,9 +106,14 @@ function validateNonceRetryOptions(options: unknown): asserts options is NonceRe
     throw new Error('nonceは0以上の整数である必要があります');
   }
 
-  if (opts.logger && typeof opts.logger === 'object') {
-    if (typeof opts.logger.info !== 'function' || typeof opts.logger.error !== 'function') {
-      throw new Error('loggerはinfoとerrorメソッドを持つ必要があります');
+  if (opts.logger !== undefined) {
+    if (
+      typeof opts.logger !== 'object' ||
+      opts.logger === null ||
+      typeof opts.logger.info !== 'function' ||
+      typeof opts.logger.error !== 'function'
+    ) {
+      throw new Error('loggerはinfoとerrorメソッドを持つオブジェクトである必要があります');
     }
   }
 }
