@@ -122,3 +122,25 @@ function isNonceError(error: unknown): boolean {
     messagesToCheck.some((message) => new RegExp(pattern, 'i').test(message))
   );
 }
+
+/**
+ * リトライログの出力
+ * @param currentNonce 現在のNonce
+ * @param retryCount リトライ回数
+ * @param maxRetries 最大リトライ回数
+ * @param errorMessage エラーメッセージ
+ * @param logger ロガー
+ * @description ログ出力のみ
+ */
+function logRetryAttempt(
+  currentNonce: number,
+  retryCount: number,
+  maxRetries: number,
+  errorMessage: string,
+  logger: Logger
+): void {
+  logger.info(`⚠️  Nonceエラー検出: ${errorMessage}`);
+  logger.info(
+    `🔄 Nonce ${currentNonce} → ${currentNonce + 1} でリトライ (${retryCount + 1}/${maxRetries})`
+  );
+}
