@@ -50,7 +50,7 @@ export type BroadcastStatus = 'SUCCESS' | 'BROADCASTED_BUT_UNCONFIRMED' | 'FAILE
 export interface TransactionProcessorResult {
   signedTransaction: Hex;
   broadcast?: {
-    success: boolean;
+    broadcastCompleted: boolean;
     status: BroadcastStatus;
     transactionHash?: Hex;
     explorerUrl?: string;
@@ -166,7 +166,7 @@ function createSuccessBroadcastResult(
   receipt: { blockNumber: bigint; gasUsed: bigint }
 ): NonNullable<TransactionProcessorResult['broadcast']> {
   const result: NonNullable<TransactionProcessorResult['broadcast']> = {
-    success: true,
+    broadcastCompleted: true,
     status: 'SUCCESS',
     transactionHash: retryResult.transactionHash!,
     blockNumber: receipt.blockNumber,
@@ -194,7 +194,7 @@ function createErrorBroadcastResult(
   errorMessage: string
 ): NonNullable<TransactionProcessorResult['broadcast']> {
   const result: NonNullable<TransactionProcessorResult['broadcast']> = {
-    success: true,
+    broadcastCompleted: true,
     status: 'BROADCASTED_BUT_UNCONFIRMED',
     transactionHash: retryResult.transactionHash!,
     finalNonce: retryResult.finalNonce,
@@ -298,7 +298,7 @@ async function handleBroadcast(
   logger.error(`❌ ブロードキャスト失敗: ${retryResult.error?.message}`);
 
   return {
-    success: false,
+    broadcastCompleted: false,
     status: 'FAILED',
     finalNonce: retryResult.finalNonce,
     retryCount: retryResult.retryCount,
