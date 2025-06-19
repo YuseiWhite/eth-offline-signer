@@ -95,3 +95,30 @@ function validateNonceRetryOptions(options: unknown): asserts options is NonceRe
     throw new Error('nonceは0以上の整数である必要があります');
   }
 }
+
+/**
+ * エラーメッセージからNonceエラーかどうかを判定
+ * @param error エラーオブジェクト
+ * @returns Nonceエラーの場合true
+ * @description Nonceエラーの判定のみ
+ */
+function isNonceError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const errorObj = error as Error & {
+    details?: string;
+    cause?: { message?: string };
+  };
+
+  const messagesToCheck = [
+    errorObj.message || '',
+    errorObj.details || '',
+    errorObj.cause?.message || '',
+  ];
+
+  return NONCE_ERROR_PATTERNS.some((pattern) =>
+    messagesToCheck.some((message) => new RegExp(pattern, 'i').test(message))
+  );
+}
