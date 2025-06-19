@@ -47,3 +47,42 @@ function validateProcessorOptions(
     throw new Error('ブロードキャスト時にはrpcUrlが必要です');
   }
 }
+
+/**
+ * トランザクション情報の成功ログ出力
+ * @param retryResult リトライ結果
+ * @param receipt トランザクションレシート
+ * @param logger ロガー
+ * @description 成功時のトランザクション情報ログ出力のみ
+ */
+function logTransactionSuccess(
+  retryResult: NonceRetryResult,
+  receipt: { blockNumber: bigint; gasUsed: bigint },
+  logger: Logger
+): void {
+  logger.info(`📋 トランザクションハッシュ: ${retryResult.transactionHash}`);
+  logger.info(`⛏️  ブロック番号: ${receipt.blockNumber}`);
+  logger.info(`⛽ ガス使用量: ${receipt.gasUsed}`);
+  if (retryResult.explorerUrl) {
+    logger.info(`🔗 エクスプローラーURL: ${retryResult.explorerUrl}`);
+  }
+}
+
+/**
+ * トランザクション情報のエラーログ出力
+ * @param retryResult リトライ結果
+ * @param errorMessage エラーメッセージ
+ * @param logger ロガー
+ * @description エラー時のトランザクション情報ログ出力のみ
+ */
+function logTransactionError(
+  retryResult: NonceRetryResult,
+  errorMessage: string,
+  logger: Logger
+): void {
+  logger.info(`⚠️  レシート取得エラー（トランザクションは送信済み）: ${errorMessage}`);
+  logger.info(`📋 トランザクションハッシュ: ${retryResult.transactionHash}`);
+  if (retryResult.explorerUrl) {
+    logger.info(`🔗 エクスプローラーURL: ${retryResult.explorerUrl}`);
+  }
+}
