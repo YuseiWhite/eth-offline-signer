@@ -1,6 +1,25 @@
 import type { Chain } from 'viem';
-import { hoodi, sepolia } from 'viem/chains';
+import { anvil, hoodi, sepolia } from 'viem/chains';
 import { NetworkError } from '../utils/errors';
+
+/**
+ * 実行環境判定によるAnvil RPC URLの決定
+ * @description 環境変数 > Docker判定 > デフォルト の優先順位
+ * @returns 適切なRPC URL
+ */
+function getAnvilRpcUrl(): string {
+  // 環境変数での明示的指定を最優先
+  if (process.env.ANVIL_RPC_URL) {
+    return process.env.ANVIL_RPC_URL;
+  }
+
+  // Docker環境の簡易判定（環境変数ベース）
+  if (process.env.DOCKER_CONTAINER || process.env.HOSTNAME?.includes('docker')) {
+    return 'http://anvil:8545';
+  }
+
+  return 'http://localhost:8545';
+}
 
 /**
  * ネットワーク設定の型定義
@@ -31,6 +50,26 @@ const BUILTIN_NETWORK_CONFIGS = {
     explorerBaseUrl: 'https://hoodi.etherscan.io',
     name: 'Hoodi Testnet',
     chain: hoodi,
+  },
+  31337: {
+    explorerBaseUrl: 'http://localhost:8545',
+    name: 'Anvil Local Network',
+    chain: {
+      ...anvil,
+      rpcUrls: {
+        ...anvil.rpcUrls,
+        default: {
+          http: [getAnvilRpcUrl()],
+        },
+        public: {
+          http: [getAnvilRpcUrl()],
+        },
+      },
+      blockExplorers: {
+        default: { name: 'Anvil', url: 'http://localhost:8545' },
+      },
+      testnet: true,
+    },
   },
 } as const satisfies Record<number, NetworkConfig>;
 
