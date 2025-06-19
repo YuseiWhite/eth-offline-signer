@@ -37,6 +37,30 @@ export interface NetworkConfig {
 export type NetworkConfigOverrides = Record<number, Partial<NetworkConfig>>;
 
 /**
+ * Anvil用の動的ネットワーク設定生成
+ * @description 実行時環境に応じて適切な設定を生成
+ * @returns Anvilネットワーク設定
+ */
+function createAnvilNetworkConfig(): NetworkConfig {
+  const anvilRpcUrl = getAnvilRpcUrl();
+  return {
+    explorerBaseUrl: anvilRpcUrl, // RPC URLと一致させる（本番では削除予定）
+    name: 'Anvil Local Network',
+    chain: {
+      ...anvil,
+      rpcUrls: {
+        default: { http: [anvilRpcUrl] },
+        public: { http: [anvilRpcUrl] },
+      },
+      blockExplorers: {
+        default: { name: 'Anvil', url: anvilRpcUrl },
+      },
+      testnet: true,
+    },
+  };
+}
+
+/**
  * 不変のネットワーク設定（読み取り専用）
  * @description セキュリティ強化：意図しない設定変更を防止
  */
@@ -50,24 +74,6 @@ const BUILTIN_NETWORK_CONFIGS = {
     explorerBaseUrl: 'https://hoodi.etherscan.io',
     name: 'Hoodi Testnet',
     chain: hoodi,
-  },
-  31337: {
-    explorerBaseUrl: 'http://localhost:8545',
-    name: 'Anvil Local Network',
-    chain: (() => {
-      const anvilRpcUrl = getAnvilRpcUrl();
-      return {
-        ...anvil,
-        rpcUrls: {
-          default: { http: [anvilRpcUrl] },
-          public: { http: [anvilRpcUrl] },
-        },
-        blockExplorers: {
-          default: { name: 'Anvil', url: 'http://localhost:8545' },
-        },
-        testnet: true,
-      };
-    })(),
   },
 } as const satisfies Record<number, NetworkConfig>;
 
@@ -180,6 +186,11 @@ function validateChainId(chainId: number): void {
  * @returns ネットワーク設定（存在しない場合はundefined）
  */
 function getBuiltinNetworkConfig(chainId: number): NetworkConfig | undefined {
+  // Anvilの場合は動的設定を返す
+  if (chainId === 31337) {
+    return createAnvilNetworkConfig();
+  }
+
   return (BUILTIN_NETWORK_CONFIGS as Record<number, NetworkConfig>)[chainId];
 }
 
@@ -236,6 +247,9 @@ function addNewConfig(override: Partial<NetworkConfig>, chainId: number): Networ
 function mergeNetworkConfigs(overrides: NetworkConfigOverrides): Record<number, NetworkConfig> {
   const result: Record<number, NetworkConfig> = { ...BUILTIN_NETWORK_CONFIGS };
 
+  // Anvilを動的に追加
+  result[31337] = createAnvilNetworkConfig();
+
   for (const [chainIdStr, override] of Object.entries(overrides)) {
     const chainId = Number(chainIdStr);
     validateChainId(chainId);
@@ -291,7 +305,12 @@ export function getNetworkConfig(
 
   const configs = customNetworkConfigs
     ? mergeNetworkConfigs(customNetworkConfigs)
-    : (BUILTIN_NETWORK_CONFIGS as Record<number, NetworkConfig>);
+    : (() => {
+        const result: Record<number, NetworkConfig> = { ...BUILTIN_NETWORK_CONFIGS };
+        // Anvilを動的に追加
+        result[31337] = createAnvilNetworkConfig();
+        return result;
+      })();
 
   const config = configs[chainId];
   if (!config) {
@@ -307,10 +326,18 @@ export function getNetworkConfig(
  * @returns サポートネットワークのリスト
  */
 export function getAllSupportedNetworks(): Array<{ chainId: number; config: NetworkConfig }> {
-  return Object.entries(BUILTIN_NETWORK_CONFIGS).map(([chainId, config]) => {
+  const networks: Array<{ chainId: number; config: NetworkConfig }> = Object.entries(BUILTIN_NETWORK_CONFIGS).map(([chainId, config]) => {
     return {
       chainId: Number(chainId),
-      config: config,
+      config: config as NetworkConfig,
     };
   });
+
+  // Anvilを動的に追加
+  networks.push({
+    chainId: 31337,
+    config: createAnvilNetworkConfig(),
+  });
+
+  return networks;
 }
