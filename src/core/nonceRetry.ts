@@ -45,3 +45,14 @@ export interface NonceRetryResult {
   readonly retryCount: number;
   readonly error?: Error;
 }
+
+/**
+ * Nonceエラーの検出パターン
+ * @description セキュリティ上の理由でreadonlyで定義
+ */
+const NONCE_ERROR_PATTERNS = [
+  'nonce too low',
+  'nonce too high',
+  'invalid nonce',
+  'nonce.*expected',
+] as const;
