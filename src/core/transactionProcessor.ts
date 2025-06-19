@@ -295,7 +295,7 @@ async function handleBroadcast(
     return await handleTransactionReceipt(retryResult, txParams, rpcUrl, logger);
   }
 
-  logger.info(`❌ ブロードキャスト失敗: ${retryResult.error?.message}`);
+  logger.error(`❌ ブロードキャスト失敗: ${retryResult.error?.message}`);
 
   return {
     success: false,
