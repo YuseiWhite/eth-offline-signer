@@ -17,6 +17,31 @@ const DEFAULT_LOGGER: Logger = {
 };
 
 /**
+ * ブロードキャストステータス
+ * @description ブロードキャスト処理の詳細な状態を表現
+ */
+export type BroadcastStatus = 'SUCCESS' | 'BROADCASTED_BUT_UNCONFIRMED' | 'FAILED';
+
+/**
+ * トランザクション処理結果
+ * @description 署名済みトランザクションとブロードキャスト結果（実行時のみ）を含む
+ */
+export interface TransactionProcessorResult {
+  signedTransaction: Hex;
+  broadcast?: {
+    success: boolean;
+    status: BroadcastStatus;
+    transactionHash?: Hex;
+    explorerUrl?: string;
+    blockNumber?: bigint;
+    gasUsed?: bigint;
+    finalNonce?: number;
+    retryCount?: number;
+    error?: string;
+  };
+}
+
+/**
  * 入力パラメータのバリデーション
  * @param options トランザクション処理オプション
  * @throws Error バリデーション失敗時
@@ -85,4 +110,59 @@ function logTransactionError(
   if (retryResult.explorerUrl) {
     logger.info(`🔗 エクスプローラーURL: ${retryResult.explorerUrl}`);
   }
+}
+
+/**
+ * 成功時のブロードキャスト結果構築
+ * @param retryResult リトライ結果
+ * @param receipt トランザクションレシート
+ * @returns ブロードキャスト結果
+ * @description 成功結果の構築のみ
+ */
+function buildSuccessBroadcastResult(
+  retryResult: NonceRetryResult,
+  receipt: { blockNumber: bigint; gasUsed: bigint }
+): NonNullable<TransactionProcessorResult['broadcast']> {
+  const result: NonNullable<TransactionProcessorResult['broadcast']> = {
+    success: true,
+    status: 'SUCCESS',
+    transactionHash: retryResult.transactionHash!,
+    blockNumber: receipt.blockNumber,
+    gasUsed: receipt.gasUsed,
+    finalNonce: retryResult.finalNonce,
+    retryCount: retryResult.retryCount,
+  };
+
+  if (retryResult.explorerUrl) {
+    result.explorerUrl = retryResult.explorerUrl;
+  }
+
+  return result;
+}
+
+/**
+ * エラー時のブロードキャスト結果構築
+ * @param retryResult リトライ結果
+ * @param errorMessage エラーメッセージ
+ * @returns ブロードキャスト結果
+ * @description エラー結果の構築のみ
+ */
+function buildErrorBroadcastResult(
+  retryResult: NonceRetryResult,
+  errorMessage: string
+): NonNullable<TransactionProcessorResult['broadcast']> {
+  const result: NonNullable<TransactionProcessorResult['broadcast']> = {
+    success: true,
+    status: 'BROADCASTED_BUT_UNCONFIRMED',
+    transactionHash: retryResult.transactionHash!,
+    finalNonce: retryResult.finalNonce,
+    retryCount: retryResult.retryCount,
+    error: `レシート取得エラー: ${errorMessage}`,
+  };
+
+  if (retryResult.explorerUrl) {
+    result.explorerUrl = retryResult.explorerUrl;
+  }
+
+  return result;
 }
