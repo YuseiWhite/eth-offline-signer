@@ -56,3 +56,42 @@ const NONCE_ERROR_PATTERNS = [
   'invalid nonce',
   'nonce.*expected',
 ] as const;
+
+/**
+ * 入力パラメータのバリデーション
+ * @param options リトライオプション
+ * @throws Error バリデーション失敗時
+ * @description 入力値の妥当性検証のみ
+ */
+function validateNonceRetryOptions(options: unknown): asserts options is NonceRetryOptions {
+  if (!options || typeof options !== 'object') {
+    throw new Error('NonceRetryOptionsが指定されていません');
+  }
+
+  const opts = options as Partial<NonceRetryOptions>;
+
+  if (
+    typeof opts.maxRetries !== 'number' ||
+    !Number.isInteger(opts.maxRetries) ||
+    opts.maxRetries < 1 ||
+    opts.maxRetries > 10
+  ) {
+    throw new Error('maxRetriesは1-10の整数である必要があります');
+  }
+
+  if (typeof opts.executeTransaction !== 'function') {
+    throw new Error('executeTransactionは関数である必要があります');
+  }
+
+  if (!opts.txParams || typeof opts.txParams !== 'object') {
+    throw new Error('txParamsが指定されていません');
+  }
+
+  if (
+    typeof opts.txParams.nonce !== 'number' ||
+    !Number.isInteger(opts.txParams.nonce) ||
+    opts.txParams.nonce < 0
+  ) {
+    throw new Error('nonceは0以上の整数である必要があります');
+  }
+}
