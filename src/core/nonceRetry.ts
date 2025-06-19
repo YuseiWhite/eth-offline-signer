@@ -1,3 +1,6 @@
+import type { Hex } from 'viem';
+import type { EIP1559TxParams } from '../types/schema';
+
 /**
  * ロガーインターフェース
  * @description テスト可能性のための依存性注入パターン
@@ -191,4 +194,42 @@ function buildFailureResult(
     retryCount,
     error: error || new Error('不明なエラーが発生しました'),
   };
+}
+
+/**
+ * Nonceエラー時の自動インクリメント機能
+ * @param options リトライ設定（最大回数、実行関数、トランザクションパラメータ）
+ * @returns リトライ実行結果（成功・失敗状況とトランザクションハッシュ）
+ * @throws Error 入力パラメータが不正な場合
+ * @description Nonceエラーのリトライ処理のみを担当、署名・ブロードキャストは外部委譲
+ */
+export async function executeWithNonceRetry(options: NonceRetryOptions): Promise<NonceRetryResult> {
+  validateNonceRetryOptions(options);
+
+  const { maxRetries, executeTransaction, txParams, logger = DEFAULT_LOGGER } = options;
+  let currentNonce = txParams.nonce;
+  let retryCount = 0;
+  let lastError: Error | null = null;
+
+  while (retryCount <= maxRetries) {
+    try {
+      const result = await executeTransaction(currentNonce);
+      return buildSuccessResult(result, currentNonce, retryCount);
+    } catch (error: unknown) {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      lastError = errorObj;
+
+      const shouldRetry = isNonceError(error) && retryCount < maxRetries;
+
+      if (shouldRetry) {
+        logRetryAttempt(currentNonce, retryCount, maxRetries, errorObj.message, logger);
+        currentNonce++;
+        retryCount++;
+      } else {
+        break;
+      }
+    }
+  }
+
+  return buildFailureResult(currentNonce, retryCount, lastError);
 }
