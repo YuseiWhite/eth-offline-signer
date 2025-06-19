@@ -155,13 +155,13 @@ function logTransactionError(
 }
 
 /**
- * 成功時のブロードキャスト結果構築
+ * 成功時のブロードキャスト結果作成
  * @param retryResult リトライ結果
  * @param receipt トランザクションレシート
  * @returns ブロードキャスト結果
- * @description 成功結果の構築のみ
+ * @description 成功結果の作成のみ
  */
-function buildSuccessBroadcastResult(
+function createSuccessBroadcastResult(
   retryResult: NonceRetryResult,
   receipt: { blockNumber: bigint; gasUsed: bigint }
 ): NonNullable<TransactionProcessorResult['broadcast']> {
@@ -183,13 +183,13 @@ function buildSuccessBroadcastResult(
 }
 
 /**
- * エラー時のブロードキャスト結果構築
+ * エラー時のブロードキャスト結果作成
  * @param retryResult リトライ結果
  * @param errorMessage エラーメッセージ
  * @returns ブロードキャスト結果
- * @description エラー結果の構築のみ
+ * @description エラー結果の作成のみ
  */
-function buildErrorBroadcastResult(
+function createErrorBroadcastResult(
   retryResult: NonceRetryResult,
   errorMessage: string
 ): NonNullable<TransactionProcessorResult['broadcast']> {
@@ -243,13 +243,13 @@ async function handleTransactionReceipt(
     });
 
     logTransactionSuccess(retryResult, receipt, logger);
-    return buildSuccessBroadcastResult(retryResult, receipt);
+    return createSuccessBroadcastResult(retryResult, receipt);
   } catch (receiptError: unknown) {
     const errorMessage =
       receiptError instanceof Error ? receiptError.message : String(receiptError);
 
     logTransactionError(retryResult, errorMessage, logger);
-    return buildErrorBroadcastResult(retryResult, errorMessage);
+    return createErrorBroadcastResult(retryResult, errorMessage);
   }
 }
 
