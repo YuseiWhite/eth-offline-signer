@@ -144,3 +144,30 @@ function logRetryAttempt(
     `🔄 Nonce ${currentNonce} → ${currentNonce + 1} でリトライ (${retryCount + 1}/${maxRetries})`
   );
 }
+
+/**
+ * 成功結果の構築
+ * @param result トランザクション実行結果
+ * @param finalNonce 最終Nonce
+ * @param retryCount リトライ回数
+ * @returns 成功結果オブジェクト
+ * @description 成功結果の構築のみ
+ */
+function buildSuccessResult(
+  result: { transactionHash: Hex; explorerUrl?: string },
+  finalNonce: number,
+  retryCount: number
+): NonceRetryResult {
+  const successResult: NonceRetryResult = {
+    success: true,
+    transactionHash: result.transactionHash,
+    finalNonce,
+    retryCount,
+  };
+
+  if (result.explorerUrl) {
+    return { ...successResult, explorerUrl: result.explorerUrl };
+  }
+
+  return successResult;
+}
