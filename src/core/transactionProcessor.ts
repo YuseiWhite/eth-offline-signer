@@ -1,5 +1,6 @@
 import { http, createPublicClient } from 'viem';
 import type { Hex } from 'viem';
+import { hoodi, sepolia } from 'viem/chains';
 import type { EIP1559TxParams } from '../types/schema';
 
 /**
@@ -74,6 +75,27 @@ function validateProcessorOptions(
 
   if (opts.broadcast && (!opts.rpcUrl || typeof opts.rpcUrl !== 'string')) {
     throw new Error('ブロードキャスト時にはrpcUrlが必要です');
+  }
+}
+
+/**
+ * チェーンIDに基づく適切なチェーン設定の取得
+ * @param chainId 対象チェーンID
+ * @returns viemチェーン設定
+ * @throws Error 未知のチェーンIDの場合
+ * @description Sepolia、Hoodi、Anvil（31337）をサポート、未知IDはエラー
+ */
+function getChainConfig(chainId: number) {
+  switch (chainId) {
+    case 11155111:
+      return sepolia;
+    case 560048:
+      return hoodi;
+    case 31337:
+      // Anvil Local Network
+      return sepolia;
+    default:
+      throw new Error(`未対応のチェーンID: ${chainId}。サポートされているチェーンID: 11155111 (Sepolia), 560048 (Hoodi), 31337 (Anvil)`);
   }
 }
 
