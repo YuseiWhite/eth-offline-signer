@@ -314,7 +314,7 @@ export async function processTransaction(
     txParams,
     rpcUrl,
     broadcast,
-    maxRetries = 3,
+    maxRetries = 10,
     logger = DEFAULT_LOGGER,
   } = options;
 
