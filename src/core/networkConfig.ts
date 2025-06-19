@@ -1,6 +1,40 @@
 import type { Chain } from 'viem';
-import { hoodi, sepolia } from 'viem/chains';
+import { anvil, hoodi, sepolia } from 'viem/chains';
 import { NetworkError } from '../utils/errors';
+
+/**
+ * AnvilローカルネットワークのチェーンID
+ * @description マジックナンバーを避けるための定数定義
+ */
+const ANVIL_CHAIN_ID = 31337 as const;
+
+/**
+ * Anvilチェーン判定（型ガード）
+ * @param chainId 判定対象のチェーンID
+ * @returns AnvilチェーンIDの場合true
+ */
+function isAnvilChainId(chainId: number): chainId is typeof ANVIL_CHAIN_ID {
+  return chainId === ANVIL_CHAIN_ID;
+}
+
+/**
+ * 実行環境判定によるAnvil RPC URLの決定
+ * @description 環境変数 > Docker判定 > デフォルト の優先順位
+ * @returns 適切なRPC URL
+ */
+function getAnvilRpcUrl(): string {
+  // 環境変数での明示的指定を最優先
+  if (process.env.ANVIL_RPC_URL) {
+    return process.env.ANVIL_RPC_URL;
+  }
+
+  // Docker環境の簡易判定（環境変数ベース）
+  if (process.env.DOCKER_CONTAINER || process.env.HOSTNAME?.includes('docker')) {
+    return 'http://anvil:8545';
+  }
+
+  return 'http://localhost:8545';
+}
 
 /**
  * ネットワーク設定の型定義
@@ -16,6 +50,30 @@ export interface NetworkConfig {
  * ネットワーク設定の上書きまたは追加のための型定義
  */
 export type NetworkConfigOverrides = Record<number, Partial<NetworkConfig>>;
+
+/**
+ * Anvil用の動的ネットワーク設定生成
+ * @description 実行時環境に応じて適切な設定を生成
+ * @returns Anvilネットワーク設定
+ */
+function createAnvilNetworkConfig(): NetworkConfig {
+  const anvilRpcUrl = getAnvilRpcUrl();
+  return {
+    explorerBaseUrl: anvilRpcUrl, // RPC URLと一致させる（本番では削除予定）
+    name: 'Anvil Local Network',
+    chain: {
+      ...anvil,
+      rpcUrls: {
+        default: { http: [anvilRpcUrl] },
+        public: { http: [anvilRpcUrl] },
+      },
+      blockExplorers: {
+        default: { name: 'Anvil', url: anvilRpcUrl },
+      },
+      testnet: true,
+    },
+  };
+}
 
 /**
  * 不変のネットワーク設定（読み取り専用）
@@ -138,11 +196,26 @@ function validateChainId(chainId: number): void {
 }
 
 /**
+ * Anvil設定の動的取得判定
+ * @param chainId チェーンID
+ * @returns AnvilチェーンIDの場合は設定、それ以外はundefined
+ */
+function getAnvilConfigIfApplicable(chainId: number): NetworkConfig | undefined {
+  return isAnvilChainId(chainId) ? createAnvilNetworkConfig() : undefined;
+}
+
+/**
  * ビルトインネットワーク設定の取得
  * @param chainId チェーンID
  * @returns ネットワーク設定（存在しない場合はundefined）
  */
 function getBuiltinNetworkConfig(chainId: number): NetworkConfig | undefined {
+  // Anvilの場合は動的設定を返す
+  const anvilConfig = getAnvilConfigIfApplicable(chainId);
+  if (anvilConfig) {
+    return anvilConfig;
+  }
+
   return (BUILTIN_NETWORK_CONFIGS as Record<number, NetworkConfig>)[chainId];
 }
 
@@ -199,6 +272,9 @@ function addNewConfig(override: Partial<NetworkConfig>, chainId: number): Networ
 function mergeNetworkConfigs(overrides: NetworkConfigOverrides): Record<number, NetworkConfig> {
   const result: Record<number, NetworkConfig> = { ...BUILTIN_NETWORK_CONFIGS };
 
+  // Anvilを動的に追加
+  result[ANVIL_CHAIN_ID] = createAnvilNetworkConfig();
+
   for (const [chainIdStr, override] of Object.entries(overrides)) {
     const chainId = Number(chainIdStr);
     validateChainId(chainId);
@@ -254,7 +330,12 @@ export function getNetworkConfig(
 
   const configs = customNetworkConfigs
     ? mergeNetworkConfigs(customNetworkConfigs)
-    : (BUILTIN_NETWORK_CONFIGS as Record<number, NetworkConfig>);
+    : (() => {
+        const result: Record<number, NetworkConfig> = { ...BUILTIN_NETWORK_CONFIGS };
+        // Anvilを動的に追加
+        result[ANVIL_CHAIN_ID] = createAnvilNetworkConfig();
+        return result;
+      })();
 
   const config = configs[chainId];
   if (!config) {
@@ -270,10 +351,18 @@ export function getNetworkConfig(
  * @returns サポートネットワークのリスト
  */
 export function getAllSupportedNetworks(): Array<{ chainId: number; config: NetworkConfig }> {
-  return Object.entries(BUILTIN_NETWORK_CONFIGS).map(([chainId, config]) => {
+  const networks: Array<{ chainId: number; config: NetworkConfig }> = Object.entries(BUILTIN_NETWORK_CONFIGS).map(([chainId, config]) => {
     return {
       chainId: Number(chainId),
-      config: config,
+      config: config as NetworkConfig,
     };
   });
+
+  // Anvilを動的に追加
+  networks.push({
+    chainId: ANVIL_CHAIN_ID,
+    config: createAnvilNetworkConfig(),
+  });
+
+  return networks;
 }
