@@ -61,6 +61,14 @@ const NONCE_ERROR_PATTERNS = [
 ] as const;
 
 /**
+ * 事前コンパイル済み正規表現
+ * @description パフォーマンス向上のため事前コンパイル
+ */
+const PRECOMPILED_NONCE_ERROR_PATTERNS = NONCE_ERROR_PATTERNS.map(
+  (pattern) => new RegExp(pattern, 'i')
+) as readonly RegExp[];
+
+/**
  * 入力パラメータのバリデーション
  * @param options リトライオプション
  * @throws Error バリデーション失敗時
@@ -121,8 +129,8 @@ function isNonceError(error: unknown): boolean {
     errorObj.cause?.message || '',
   ];
 
-  return NONCE_ERROR_PATTERNS.some((pattern) =>
-    messagesToCheck.some((message) => new RegExp(pattern, 'i').test(message))
+  return PRECOMPILED_NONCE_ERROR_PATTERNS.some((regex) =>
+    messagesToCheck.some((message) => regex.test(message))
   );
 }
 
