@@ -3,6 +3,21 @@ import { anvil, hoodi, sepolia } from 'viem/chains';
 import { NetworkError } from '../utils/errors';
 
 /**
+ * AnvilローカルネットワークのチェーンID
+ * @description マジックナンバーを避けるための定数定義
+ */
+const ANVIL_CHAIN_ID = 31337 as const;
+
+/**
+ * Anvilチェーン判定（型ガード）
+ * @param chainId 判定対象のチェーンID
+ * @returns AnvilチェーンIDの場合true
+ */
+function isAnvilChainId(chainId: number): chainId is typeof ANVIL_CHAIN_ID {
+  return chainId === ANVIL_CHAIN_ID;
+}
+
+/**
  * 実行環境判定によるAnvil RPC URLの決定
  * @description 環境変数 > Docker判定 > デフォルト の優先順位
  * @returns 適切なRPC URL
@@ -181,14 +196,24 @@ function validateChainId(chainId: number): void {
 }
 
 /**
+ * Anvil設定の動的取得判定
+ * @param chainId チェーンID
+ * @returns AnvilチェーンIDの場合は設定、それ以外はundefined
+ */
+function getAnvilConfigIfApplicable(chainId: number): NetworkConfig | undefined {
+  return isAnvilChainId(chainId) ? createAnvilNetworkConfig() : undefined;
+}
+
+/**
  * ビルトインネットワーク設定の取得
  * @param chainId チェーンID
  * @returns ネットワーク設定（存在しない場合はundefined）
  */
 function getBuiltinNetworkConfig(chainId: number): NetworkConfig | undefined {
   // Anvilの場合は動的設定を返す
-  if (chainId === 31337) {
-    return createAnvilNetworkConfig();
+  const anvilConfig = getAnvilConfigIfApplicable(chainId);
+  if (anvilConfig) {
+    return anvilConfig;
   }
 
   return (BUILTIN_NETWORK_CONFIGS as Record<number, NetworkConfig>)[chainId];
@@ -248,7 +273,7 @@ function mergeNetworkConfigs(overrides: NetworkConfigOverrides): Record<number, 
   const result: Record<number, NetworkConfig> = { ...BUILTIN_NETWORK_CONFIGS };
 
   // Anvilを動的に追加
-  result[31337] = createAnvilNetworkConfig();
+  result[ANVIL_CHAIN_ID] = createAnvilNetworkConfig();
 
   for (const [chainIdStr, override] of Object.entries(overrides)) {
     const chainId = Number(chainIdStr);
@@ -308,7 +333,7 @@ export function getNetworkConfig(
     : (() => {
         const result: Record<number, NetworkConfig> = { ...BUILTIN_NETWORK_CONFIGS };
         // Anvilを動的に追加
-        result[31337] = createAnvilNetworkConfig();
+        result[ANVIL_CHAIN_ID] = createAnvilNetworkConfig();
         return result;
       })();
 
@@ -335,7 +360,7 @@ export function getAllSupportedNetworks(): Array<{ chainId: number; config: Netw
 
   // Anvilを動的に追加
   networks.push({
-    chainId: 31337,
+    chainId: ANVIL_CHAIN_ID,
     config: createAnvilNetworkConfig(),
   });
 
