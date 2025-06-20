@@ -2,6 +2,7 @@ import { randomFillSync } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { FileAccessError, PrivateKeyError } from '../utils/errors';
+import { logger } from '../utils/logger';
 
 /**
  * 秘密鍵読み込み結果の型定義
@@ -88,7 +89,7 @@ function forceGarbageCollection(): void {
 async function checkKeyFilePermissions(keyFilePath: string): Promise<void> {
   if (process.platform === 'win32') {
     // Windowsの場合、POSIXスタイルのパーミッションチェックは直接適用できない
-    console.warn(
+    logger.warn(
       `警告: Windows環境では秘密鍵ファイル (${keyFilePath}) のPOSIXパーミッションチェックはスキップされます。ファイルが適切に保護されていることを確認してください。`
     );
     return;
@@ -97,7 +98,7 @@ async function checkKeyFilePermissions(keyFilePath: string): Promise<void> {
   const stats = await fs.stat(keyFilePath);
   const permissions = (stats.mode & 0o777).toString(8); // 8進数でパーミッション取得
   if (permissions !== '400') {
-    console.warn(
+    logger.warn(
       `警告: 秘密鍵ファイル (${keyFilePath}) のパーミッションが400ではありません (現在のパーミッション: ${permissions})。セキュリティリスクを避けるため、chmod 400 ${path.basename(keyFilePath)} でパーミッションを修正することを強く推奨します。`
     );
   }
@@ -135,7 +136,7 @@ function normalizePrivateKeyPrefix(privateKey: string, sourceInfo?: string): str
     return privateKey;
   }
   const source = sourceInfo ? `ファイル: ${sourceInfo}` : 'ファイル入力';
-  console.info(`🔧 秘密鍵に0xプレフィックスを追加しました (${source})`);
+  logger.info(`🔧 秘密鍵に0xプレフィックスを追加しました (${source})`);
   return `0x${privateKey}`;
 }
 
