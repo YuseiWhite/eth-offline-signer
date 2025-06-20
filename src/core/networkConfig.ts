@@ -366,3 +366,20 @@ export function getAllSupportedNetworks(): Array<{ chainId: number; config: Netw
 
   return networks;
 }
+
+/**
+ * ネットワークタイプの型定義
+ * @description ネットワークの分類（テストネット、カスタム）
+ */
+export type NetworkType = 'testnet' | 'custom';
+
+/**
+ * 表示用ネットワーク情報の型定義
+ * @description CLI層で使用する表示情報
+ */
+export interface DisplayNetworkInfo {
+  name: string;
+  explorer: string;
+  type: NetworkType;
+}
+
