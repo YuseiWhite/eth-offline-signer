@@ -3,10 +3,12 @@ import { anvil, hoodi, sepolia } from 'viem/chains';
 import { NetworkError } from '../utils/errors';
 
 /**
- * AnvilローカルネットワークのチェーンID
+ * チェーンID定数定義
  * @description マジックナンバーを避けるための定数定義
  */
 const ANVIL_CHAIN_ID = 31337 as const;
+const SEPOLIA_CHAIN_ID = 11155111 as const;
+const HOODI_CHAIN_ID = 560048 as const;
 
 /**
  * Anvilチェーン判定（型ガード）
@@ -80,12 +82,12 @@ function createAnvilNetworkConfig(): NetworkConfig {
  * @description セキュリティ強化：意図しない設定変更を防止
  */
 const BUILTIN_NETWORK_CONFIGS = {
-  11155111: {
+  [SEPOLIA_CHAIN_ID]: {
     explorerBaseUrl: 'https://sepolia.etherscan.io',
     name: 'Sepolia Testnet',
     chain: sepolia,
   },
-  560048: {
+  [HOODI_CHAIN_ID]: {
     explorerBaseUrl: 'https://hoodi.etherscan.io',
     name: 'Hoodi Testnet',
     chain: hoodi,
@@ -365,4 +367,58 @@ export function getAllSupportedNetworks(): Array<{ chainId: number; config: Netw
   });
 
   return networks;
+}
+
+/**
+ * ネットワークタイプの型定義
+ * @description ネットワークの分類（テストネット、カスタム）
+ */
+export type NetworkType = 'testnet' | 'custom';
+
+/**
+ * 表示用ネットワーク情報の型定義
+ * @description CLI層で使用する表示情報
+ */
+export interface DisplayNetworkInfo {
+  name: string;
+  explorer: string;
+  type: NetworkType;
+}
+
+/**
+ * チェーンIDからネットワークタイプを判定
+ * @param chainId 判定対象のチェーンID
+ * @returns ネットワークタイプ
+ */
+function getNetworkType(chainId: number): NetworkType {
+  // Sepolia テストネット または Hoodi テストネット
+  if (chainId === SEPOLIA_CHAIN_ID || chainId === HOODI_CHAIN_ID) {
+    return 'testnet';
+  }
+
+  // Anvilはカスタムネットワークとして扱う
+  return 'custom';
+}
+
+/**
+ * CLI表示用のネットワーク情報取得
+ * @param chainId 対象チェーンID
+ * @returns 表示用ネットワーク情報
+ * @description core/の責任でネットワーク情報を提供、CLI層は表示のみに集中
+ */
+export function getDisplayNetworkInfo(chainId: number): DisplayNetworkInfo {
+  try {
+    const networkConfig = getNetworkConfig(chainId);
+    return {
+      name: networkConfig.name,
+      explorer: networkConfig.explorerBaseUrl,
+      type: getNetworkType(chainId),
+    };
+  } catch {
+    return {
+      name: `Unknown Network (Chain ID: ${chainId})`,
+      explorer: 'Unknown',
+      type: 'custom',
+    };
+  }
 }
