@@ -10,3 +10,16 @@ interface ValidatedCliOptions {
   broadcast: boolean;
   rpcUrl?: string;
 }
+
+/**
+ * unknownエラーを安全にErrorオブジェクトに変換
+ * @param error 変換対象のエラー
+ * @returns Errorオブジェクト
+ * @description 型アサーションを使わずに安全な型変換を実行
+ */
+function toError(error: unknown): Error {
+  if (error instanceof Error) {
+    return error;
+  }
+  return new Error(String(error));
+}
