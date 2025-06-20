@@ -7,8 +7,14 @@ import { signEIP1559TransactionOffline } from './signer';
 import { getNetworkConfig } from './networkConfig';
 
 /**
+ * デフォルトのリトライ回数
+ * @description Nonceエラー時の最大リトライ回数のデフォルト値
+ */
+export const DEFAULT_MAX_RETRIES = 10;
+
+/**
  * ロガーインターフェース
- * @description テスト可能性のための依存性注入パターン
+ * @description 依存性注入パターンでログ出力を抽象化
  */
 export interface Logger {
   info(message: string): void;
@@ -314,7 +320,7 @@ export async function processTransaction(
     txParams,
     rpcUrl,
     broadcast,
-    maxRetries = 10,
+    maxRetries = DEFAULT_MAX_RETRIES,
     logger = DEFAULT_LOGGER,
   } = options;
 
