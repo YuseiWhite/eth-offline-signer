@@ -5,6 +5,7 @@ import { broadcastTransaction } from './broadcaster';
 import { type NonceRetryResult, executeWithNonceRetry } from './nonceRetry';
 import { signEIP1559TransactionOffline } from './signer';
 import { getNetworkConfig } from './networkConfig';
+import { logger as defaultLogger, type Logger as BaseLogger } from '../utils/logger';
 
 /**
  * デフォルトのリトライ回数
@@ -23,11 +24,11 @@ export interface Logger {
 
 /**
  * デフォルトロガー実装
- * @description 本番環境でのconsole出力
+ * @description 環境に応じた適切なロガーを使用
  */
 const DEFAULT_LOGGER: Logger = {
-  info: (message: string) => console.info(message),
-  error: (message: string) => console.error(message),
+  info: (message: string) => defaultLogger.info(message),
+  error: (message: string) => defaultLogger.error(message),
 };
 
 /**
