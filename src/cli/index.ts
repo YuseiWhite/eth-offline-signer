@@ -3,9 +3,12 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { Command } from 'commander';
+import { privateKeyToAccount } from 'viem/accounts';
+import { loadPrivateKey } from '../core/keyManager';
+import { processTransaction, DEFAULT_MAX_RETRIES } from '../core/transactionProcessor';
 import { getDisplayNetworkInfo } from '../core/networkConfig';
 import { validateEIP1559TxParams } from '../types/schema';
-import { InvalidInputError } from '../utils/errors';
+import { InvalidInputError, handleCliError } from '../utils/errors';
 
 const program = new Command();
 
@@ -135,3 +138,45 @@ program
   .option('--broadcast', 'トランザクションをネットワークにブロードキャストします。')
   .option('--rpc-url <url>', 'カスタムRPCエンドポイントのURL。')
   .allowUnknownOption(false)
+  .action(
+    /**
+     * signコマンドのメイン処理
+     * @param options CLIオプション
+     * @description 入力検証→秘密鍵読み込み→パラメータ検証→ネットワーク確認→トランザクション処理の流れ
+     */
+    async (options: {
+      keyFile?: string;
+      params?: string;
+      broadcast?: boolean;
+      rpcUrl?: string;
+    }) => {
+      let privateKeyHandle: Awaited<ReturnType<typeof loadPrivateKey>> | undefined;
+      try {
+        validateCliOptions(options);
+        // この時点でoptionsはValidatedCliOptionsとして型が絞り込まれている
+
+        privateKeyHandle = await loadPrivateKey(options.keyFile);
+        const account = privateKeyToAccount(privateKeyHandle.privateKey);
+        console.info(`🔑 使用するアドレス: ${account.address}`);
+
+        const validatedParams = loadTransactionParams(options.params);
+        displayNetworkInfo(validatedParams.chainId);
+
+        const processorOptions: Parameters<typeof processTransaction>[0] = {
+          privateKey: privateKeyHandle.privateKey,
+          txParams: validatedParams,
+          broadcast: !!options.broadcast,
+          maxRetries: DEFAULT_MAX_RETRIES,
+          ...(options.rpcUrl && { rpcUrl: options.rpcUrl }),
+        };
+
+        await processTransaction(processorOptions);
+      } catch (error: unknown) {
+        handleCliError(toError(error));
+      } finally {
+        if (privateKeyHandle?.cleanup) {
+          privateKeyHandle.cleanup();
+        }
+      }
+    }
+  );
