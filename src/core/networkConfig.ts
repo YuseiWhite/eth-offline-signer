@@ -3,10 +3,12 @@ import { anvil, hoodi, sepolia } from 'viem/chains';
 import { NetworkError } from '../utils/errors';
 
 /**
- * AnvilローカルネットワークのチェーンID
+ * チェーンID定数定義
  * @description マジックナンバーを避けるための定数定義
  */
 const ANVIL_CHAIN_ID = 31337 as const;
+const SEPOLIA_CHAIN_ID = 11155111 as const;
+const HOODI_CHAIN_ID = 560048 as const;
 
 /**
  * Anvilチェーン判定（型ガード）
