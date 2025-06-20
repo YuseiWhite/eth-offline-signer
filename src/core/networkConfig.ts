@@ -398,3 +398,25 @@ function getNetworkType(chainId: number): NetworkType {
   return 'custom';
 }
 
+/**
+ * CLI表示用のネットワーク情報取得
+ * @param chainId 対象チェーンID
+ * @returns 表示用ネットワーク情報
+ * @description core/の責任でネットワーク情報を提供、CLI層は表示のみに集中
+ */
+export function getDisplayNetworkInfo(chainId: number): DisplayNetworkInfo {
+  try {
+    const networkConfig = getNetworkConfig(chainId);
+    return {
+      name: networkConfig.name,
+      explorer: networkConfig.explorerBaseUrl,
+      type: getNetworkType(chainId),
+    };
+  } catch {
+    return {
+      name: `Unknown Network (Chain ID: ${chainId})`,
+      explorer: 'Unknown',
+      type: 'custom',
+    };
+  }
+}
