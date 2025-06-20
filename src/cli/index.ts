@@ -2,9 +2,12 @@
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { Command } from 'commander';
 import { getDisplayNetworkInfo } from '../core/networkConfig';
 import { validateEIP1559TxParams } from '../types/schema';
 import { InvalidInputError } from '../utils/errors';
+
+const program = new Command();
 
 /**
  * 検証済みCLIオプションの型定義
@@ -119,3 +122,16 @@ function getPackageVersion(): string {
     return defaultVersion;
   }
 }
+
+const packageVersion = getPackageVersion();
+
+program.version(packageVersion, '-v, --version', '現在のバージョンを出力します');
+
+program
+  .command('sign')
+  .description('Ethereumトランザクションをオフラインで署名し、オプションでブロードキャストします。')
+  .option('-k, --key-file <path>', '秘密鍵が含まれるファイルへのパス。')
+  .option('-p, --params <path>', 'トランザクションパラメータが含まれるJSONファイルへのパス。')
+  .option('--broadcast', 'トランザクションをネットワークにブロードキャストします。')
+  .option('--rpc-url <url>', 'カスタムRPCエンドポイントのURL。')
+  .allowUnknownOption(false)
