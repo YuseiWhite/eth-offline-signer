@@ -106,7 +106,7 @@ function getPackageVersion(): string {
   const defaultVersion = '1.1.0';
 
   try {
-    const packageJsonPath = path.join(__dirname, '../package.json');
+    const packageJsonPath = path.join(__dirname, '../../package.json');
     const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
 
     if (typeof packageJson.version === 'string' && packageJson.version.trim()) {
