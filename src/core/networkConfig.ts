@@ -392,7 +392,7 @@ export interface DisplayNetworkInfo {
  */
 function getNetworkType(chainId: number): NetworkType {
   // Sepolia テストネット または Hoodi テストネット
-  if (chainId === 11155111 || chainId === 560048) {
+  if (chainId === SEPOLIA_CHAIN_ID || chainId === HOODI_CHAIN_ID) {
     return 'testnet';
   }
 
