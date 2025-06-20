@@ -383,3 +383,18 @@ export interface DisplayNetworkInfo {
   type: NetworkType;
 }
 
+/**
+ * チェーンIDからネットワークタイプを判定
+ * @param chainId 判定対象のチェーンID
+ * @returns ネットワークタイプ
+ */
+function getNetworkType(chainId: number): NetworkType {
+  // Sepolia テストネット または Hoodi テストネット
+  if (chainId === 11155111 || chainId === 560048) {
+    return 'testnet';
+  }
+
+  // Anvilはカスタムネットワークとして扱う
+  return 'custom';
+}
+
