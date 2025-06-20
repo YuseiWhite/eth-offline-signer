@@ -82,12 +82,12 @@ function createAnvilNetworkConfig(): NetworkConfig {
  * @description セキュリティ強化：意図しない設定変更を防止
  */
 const BUILTIN_NETWORK_CONFIGS = {
-  11155111: {
+  [SEPOLIA_CHAIN_ID]: {
     explorerBaseUrl: 'https://sepolia.etherscan.io',
     name: 'Sepolia Testnet',
     chain: sepolia,
   },
-  560048: {
+  [HOODI_CHAIN_ID]: {
     explorerBaseUrl: 'https://hoodi.etherscan.io',
     name: 'Hoodi Testnet',
     chain: hoodi,
