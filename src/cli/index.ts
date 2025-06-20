@@ -132,7 +132,7 @@ function getPackageVersion(): string {
   // 全て失敗した場合の処理（本番環境では診断情報を提供）
   if (process.env.NODE_ENV !== 'test' && process.env.VITEST !== 'true') {
     console.warn(
-      `⚠️  package.jsonが見つかりませんでした。デフォルトバージョン ${defaultVersion} を使用します。`
+      `⚠️  package.jsonが見つかりませんでした（${packagePaths.length}個のパスを確認済み）。デフォルトバージョン ${defaultVersion} を使用します。`
     );
   }
   return defaultVersion;
