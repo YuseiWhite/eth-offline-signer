@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { validateEIP1559TxParams } from '../types/schema';
 import { InvalidInputError } from '../utils/errors';
 
 /**
@@ -50,6 +53,24 @@ function validateCliOptions(options: {
   if (options.broadcast && !options.rpcUrl) {
     throw new InvalidInputError(
       '--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります。'
+    );
+  }
+}
+
+/**
+ * トランザクションパラメータファイルの読み込み
+ * @param filePath パラメータファイルのパス
+ * @returns バリデーション済みのトランザクションパラメータ
+ * @throws InvalidInputError ファイル読み込みまたはパースに失敗した場合
+ */
+function loadTransactionParams(filePath: string) {
+  const resolvedPath = path.resolve(filePath);
+  try {
+    const paramsJson: unknown = JSON.parse(readFileSync(resolvedPath, 'utf-8'));
+    return validateEIP1559TxParams(paramsJson);
+  } catch (error) {
+    throw new InvalidInputError(
+      `トランザクションパラメータファイル (${resolvedPath}) の読み込みまたはJSONパースに失敗しました。詳細: ${(error as Error).message}`
     );
   }
 }
