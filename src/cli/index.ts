@@ -90,3 +90,32 @@ function displayNetworkInfo(chainId: number): void {
     console.info('⚠️  カスタムネットワークです。ブロードキャスト先が正しいことを確認してください。');
   }
 }
+
+/**
+ * パッケージバージョンの安全な取得
+ * @returns パッケージバージョン（取得失敗時はデフォルト値）
+ * @description エラー時は警告を出力してデフォルト値を使用
+ */
+function getPackageVersion(): string {
+  const defaultVersion = '1.1.0';
+
+  try {
+    const packageJsonPath = path.join(__dirname, '../package.json');
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+
+    if (typeof packageJson.version === 'string' && packageJson.version.trim()) {
+      return packageJson.version;
+    }
+
+    console.warn(
+      `⚠️  package.jsonにバージョン情報が見つかりません。デフォルトバージョン ${defaultVersion} を使用します。`
+    );
+    return defaultVersion;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `⚠️  package.json読み込みエラー: ${errorMessage}。デフォルトバージョン ${defaultVersion} を使用します。`
+    );
+    return defaultVersion;
+  }
+}
