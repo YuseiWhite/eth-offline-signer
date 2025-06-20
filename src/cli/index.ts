@@ -180,3 +180,21 @@ program
       }
     }
   );
+
+/**
+ * Commanderエラーメッセージのカスタマイズ
+ * @description 未知オプション・コマンドエラーを日本語で表示、ヒント付きで改善
+ */
+program.configureOutput({
+  writeErr: (str) => {
+    if (str.includes('unknown option')) {
+      console.error(`${str.trim()}`);
+      console.error('💡 ヒント: 使用可能なオプションを確認するには --help を使用してください');
+    } else if (str.includes('unknown command')) {
+      console.error(`${str.trim()}`);
+      console.error('使用可能なコマンドを確認するには --help を使用してください。');
+    } else {
+      process.stderr.write(str);
+    }
+  },
+});
