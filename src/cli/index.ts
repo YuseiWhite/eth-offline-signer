@@ -198,3 +198,10 @@ program.configureOutput({
     }
   },
 });
+
+program.parse(process.argv);
+
+// 引数なしの場合はヘルプを表示
+if (!process.argv.slice(2).length) {
+  program.outputHelp();
+}
