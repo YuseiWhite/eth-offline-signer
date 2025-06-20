@@ -9,6 +9,7 @@ import {
 } from 'viem';
 import { BroadcastError, NetworkError } from '../utils/errors';
 import { type NetworkConfigOverrides, getNetworkConfig } from './networkConfig';
+import { logger as defaultLogger } from '../utils/logger';
 
 /**
  * ブロードキャスト結果の型定義
@@ -37,11 +38,11 @@ interface BroadcastOptions {
 }
 
 /**
- * デフォルトコンソールロガー
+ * デフォルトロガー（環境に応じた出力制御）
  */
 const DEFAULT_LOGGER: Logger = {
-  info: (message) => console.info(message),
-  error: (message) => console.error(message),
+  info: (message) => defaultLogger.info(message),
+  error: (message) => defaultLogger.error(message),
 };
 
 /**
