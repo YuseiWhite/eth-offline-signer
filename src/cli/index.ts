@@ -2,6 +2,7 @@
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { getDisplayNetworkInfo } from '../core/networkConfig';
 import { validateEIP1559TxParams } from '../types/schema';
 import { InvalidInputError } from '../utils/errors';
 
@@ -72,5 +73,20 @@ function loadTransactionParams(filePath: string) {
     throw new InvalidInputError(
       `トランザクションパラメータファイル (${resolvedPath}) の読み込みまたはJSONパースに失敗しました。詳細: ${(error as Error).message}`
     );
+  }
+}
+
+/**
+ * ネットワーク情報の表示
+ * @param chainId チェーンID
+ * @description core/networkConfigから取得した情報を表示するのみ
+ */
+function displayNetworkInfo(chainId: number): void {
+  const networkInfo = getDisplayNetworkInfo(chainId);
+  console.info(`🌐 検出されたネットワーク: ${networkInfo.name} (Chain ID: ${chainId})`);
+  console.info(`🔍 対応エクスプローラー: ${networkInfo.explorer}`);
+
+  if (networkInfo.type === 'custom') {
+    console.info('⚠️  カスタムネットワークです。ブロードキャスト先が正しいことを確認してください。');
   }
 }
