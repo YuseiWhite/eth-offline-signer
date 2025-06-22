@@ -12,7 +12,7 @@ RUN apk add --no-cache \
 
 # Install Foundry with explicit shell
 ENV SHELL=/bin/bash
-RUN curl -L https://foundry.paradigm.xyz | SHELL=/bin/bash bash
+RUN curl -L https://foundry.paradigm.xyz | bash
 ENV PATH="/root/.foundry/bin:$PATH"
 RUN /bin/bash -c "source /root/.bashrc && foundryup"
 
