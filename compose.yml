@@ -1,0 +1,31 @@
+services:
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:v1.2.3
+    container_name: anvil
+    ports:
+      - "8545:8545"
+    environment:
+      - ANVIL_IP_ADDR=0.0.0.0
+    command: ["anvil", "--host", "0.0.0.0", "--auto-mine", "--block-time", "1"]
+    networks:
+      - default
+
+  signer:
+    build: .
+    container_name: signer-dev
+    volumes:
+      - .:/app
+    working_dir: /app
+    environment:
+      - ANVIL_RPC_URL=http://anvil:8545
+      - DOCKER_CONTAINER=true
+      - HOSTNAME=signer-dev
+    networks:
+      - default
+    depends_on:
+      - anvil
+    command: tail -f /dev/null
+
+networks:
+  default:
+    driver: bridge
