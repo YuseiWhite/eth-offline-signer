@@ -280,29 +280,34 @@ export const NonceRetryOptionsSchema = z.object({
   logger: LoggerSchema.optional(),
 });
 
-/**
- * トランザクションプロセッサーオプションの検証スキーマ
- * @description トランザクション処理全体のオプション検証
- */
-export const TransactionProcessorOptionsSchema = z
-  .object({
-    privateKey: PrivateKeySchema,
-    txParams: EIP1559TxParamsSchema,
-    rpcUrl: RpcUrlSchema.optional(),
-    broadcast: z.boolean(),
-    maxRetries: z.number().int().min(1).max(10).optional().default(3),
-    logger: LoggerSchema.optional(),
-  })
-  .refine((data) => !data.broadcast || data.rpcUrl !== undefined, {
-    message: 'ブロードキャスト時にはrpcUrlが必要です',
-    path: ['rpcUrl'],
-  });
+const TransactionProcessorBaseSchema = z.object({
+  privateKey: PrivateKeySchema,
+  txParams: EIP1559TxParamsSchema,
+  maxRetries: z.number().int().min(1).max(10).optional().default(3),
+  logger: LoggerSchema.optional(),
+});
 
-export type EIP1559TxParams = z.infer<typeof EIP1559TxParamsSchema>;
-export type CliOptions = z.infer<typeof CliOptionsSchema>;
-export type NetworkConfig = z.infer<typeof NetworkConfigSchema>;
+const SignAndBroadcastSchema = z.object({
+  broadcast: z.literal(true),
+  rpcUrl: RpcUrlSchema,
+});
+
+const SignOnlySchema = z.object({
+  broadcast: z.literal(false).optional(),
+  rpcUrl: z.undefined({
+    errorMap: () => ({ message: 'broadcastがfalseの場合、rpcUrlは指定できません' }),
+  }).optional(),
+});
+
+export const TransactionProcessorOptionsSchema = z.intersection(
+  TransactionProcessorBaseSchema,
+  z.discriminatedUnion('broadcast', [
+    SignAndBroadcastSchema,
+    SignOnlySchema,
+  ])
+);
+
 export type TransactionProcessorOptions = z.input<typeof TransactionProcessorOptionsSchema>;
-export type NonceRetryOptions = z.infer<typeof NonceRetryOptionsSchema>;
 
 /**
  * EIP-1559トランザクションパラメータの検証
