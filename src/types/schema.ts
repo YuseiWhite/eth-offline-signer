@@ -422,3 +422,8 @@ export function validateNonceError(error: unknown): boolean {
     messagesToCheck.some((message) => regex.test(message))
   );
 }
+
+export type EIP1559TxParams = z.infer<typeof EIP1559TxParamsSchema>;
+export type CliOptions = z.infer<typeof CliOptionsSchema>;
+export type NetworkConfig = z.infer<typeof NetworkConfigSchema>;
+export type NonceRetryOptions = z.infer<typeof NonceRetryOptionsSchema>;
