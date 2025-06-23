@@ -9,7 +9,7 @@ import { processTransaction, DEFAULT_MAX_RETRIES } from './transactionProcessor'
 import { getDisplayNetworkInfo } from './networkConfig';
 
 // typesへの依存
-import { validateEIP1559TxParams, validateCliOptions, type CliOptions } from '../types/schema';
+import { validateEIP1559TxParams, validateCliOptions, validateTransactionProcessorOptions } from '../types/schema';
 
 // utilsへの依存 (core -> utils は許可された依存関係)
 import { InvalidInputError } from '../utils/errors';
@@ -49,12 +49,12 @@ function displayNetworkInfo(chainId: number): void {
 
 /**
  * アプリケーションのメインロジック (CLIからの唯一のエントリーポイント)
- * @param options CLIから渡されたオプション
+ * @param rawOptions CLIから渡されたオプション
  */
-export async function runCli(options: CliOptions) {
+export async function runCli(rawOptions: unknown) {
   let privateKeyHandle: Awaited<ReturnType<typeof loadPrivateKey>> | undefined;
   try {
-    validateCliOptions(options);
+    const options = validateCliOptions(rawOptions);
 
     privateKeyHandle = await loadPrivateKey(options.keyFile);
     const account = privateKeyToAccount(privateKeyHandle.privateKey);
@@ -63,15 +63,15 @@ export async function runCli(options: CliOptions) {
     const validatedParams = loadTransactionParams(options.params);
     displayNetworkInfo(validatedParams.chainId);
 
-    const processorOptions: Parameters<typeof processTransaction>[0] = {
+    const transactionOptionsRaw = {
       privateKey: privateKeyHandle.privateKey,
       txParams: validatedParams,
-      broadcast: !!options.broadcast,
+      broadcast: options.broadcast,
       maxRetries: DEFAULT_MAX_RETRIES,
       ...(options.rpcUrl && { rpcUrl: options.rpcUrl }),
     };
-
-    await processTransaction(processorOptions);
+    const transactionOptions = validateTransactionProcessorOptions(transactionOptionsRaw);
+    await processTransaction(transactionOptions);
   } finally {
     // finallyブロックはこちらに移動。coreロジックのリソース解放はcoreが責任を持つ。
     if (privateKeyHandle?.cleanup) {
