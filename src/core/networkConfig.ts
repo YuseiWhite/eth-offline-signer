@@ -1,6 +1,12 @@
 import type { Chain } from 'viem';
 import { anvil, hoodi, sepolia } from 'viem/chains';
 import { NetworkError } from '../utils/errors';
+import {
+  RpcUrlSchema,
+  ChainIdSchema,
+  ChainConfigSchema,
+  NetworkConfigSchema,
+} from '../types/schema';
 
 /**
  * チェーンID定数定義
@@ -27,6 +33,12 @@ function isAnvilChainId(chainId: number): chainId is typeof ANVIL_CHAIN_ID {
 function getAnvilRpcUrl(): string {
   // 環境変数での明示的指定を最優先
   if (process.env.ANVIL_RPC_URL) {
+    const urlResult = RpcUrlSchema.safeParse(process.env.ANVIL_RPC_URL);
+    if (!urlResult.success) {
+      throw new NetworkError(
+        `ANVIL_RPC_URL環境変数のURL形式が無効です: ${urlResult.error.issues[0]?.message || '不正なURL形式'}`
+      );
+    }
     return process.env.ANVIL_RPC_URL;
   }
 
@@ -110,32 +122,15 @@ export function isBuiltinChainId(chainId: number): chainId is BuiltinChainId {
 }
 
 /**
- * URL形式の堅牢な検証
- * @param url 検証対象のURL
- * @param fieldName フィールド名（エラーメッセージ用）
- * @throws NetworkError 不正なURL形式の場合
+ * チェーンIDの基本検証
+ * @param chainId 検証対象のチェーンID
+ * @throws NetworkError 不正なチェーンIDの場合
+ * @description ドメイン層のスキーマを使用
  */
-function validateUrl(url: string, fieldName: string): void {
-  if (!url || typeof url !== 'string') {
-    throw new NetworkError(`${fieldName}が指定されていません`);
-  }
-
-  try {
-    const parsedUrl = new URL(url);
-    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-      throw new NetworkError(
-        `${fieldName}は有効なHTTP/HTTPSプロトコルである必要があります: ${url}`
-      );
-    }
-
-    if (!parsedUrl.hostname || parsedUrl.hostname.length === 0) {
-      throw new NetworkError(`${fieldName}のホスト名が無効です: ${url}`);
-    }
-  } catch (error) {
-    if (error instanceof NetworkError) {
-      throw error;
-    }
-    throw new NetworkError(`${fieldName}のURL形式が無効です: ${url}`);
+function validateChainId(chainId: number): void {
+  const result = ChainIdSchema.safeParse(chainId);
+  if (!result.success) {
+    throw new NetworkError(`不正なチェーンID: ${chainId} (${result.error.issues[0]?.message})`);
   }
 }
 
@@ -143,162 +138,173 @@ function validateUrl(url: string, fieldName: string): void {
  * チェーン設定の完全性検証
  * @param chain viemチェーン設定
  * @param chainId チェーンID
- * @throws NetworkError チェーン設定が不完全な場合
+ * @throws NetworkError 不正なチェーン設定の場合
+ * @description ドメイン層のスキーマを使用
  */
 function validateChainConfig(chain: Chain, chainId: number): void {
-  if (!chain) {
-    throw new NetworkError(`チェーンID ${chainId} のチェーン設定が存在しません`);
-  }
-
-  if (!chain.id || typeof chain.id !== 'number') {
-    throw new NetworkError(`チェーンID ${chainId} のchain.idが無効です`);
+  const result = ChainConfigSchema.safeParse(chain);
+  if (!result.success) {
+    throw new NetworkError(
+      `チェーン設定が無効です (Chain ID: ${chainId}): ${result.error.issues[0]?.message}`
+    );
   }
 
   if (chain.id !== chainId) {
-    throw new NetworkError(`チェーンID不整合: 指定値=${chainId}, chain.id=${chain.id}`);
-  }
-
-  if (!chain.name || typeof chain.name !== 'string' || chain.name.trim().length === 0) {
-    throw new NetworkError(`チェーンID ${chainId} のchain.nameが無効です`);
-  }
-
-  if (!chain.nativeCurrency || !chain.nativeCurrency.name || !chain.nativeCurrency.symbol) {
-    throw new NetworkError(`チェーンID ${chainId} のnativeCurrency設定が不完全です`);
+    throw new NetworkError(`チェーン設定のIDが一致しません: 期待値=${chainId}, 実際値=${chain.id}`);
   }
 }
 
 /**
  * ネットワーク設定の完全性検証
- * @param config 検証対象の設定
+ * @param config ネットワーク設定
  * @param chainId チェーンID
- * @throws NetworkError 設定が不完全または不正な場合
+ * @throws NetworkError 不正なネットワーク設定の場合
+ * @description ドメイン層のスキーマを使用
  */
 function validateNetworkConfig(config: NetworkConfig, chainId: number): void {
-  if (!config || typeof config !== 'object') {
-    throw new NetworkError(`チェーンID ${chainId} の設定が存在しません`);
+  const result = NetworkConfigSchema.safeParse(config);
+  if (!result.success) {
+    throw new NetworkError(
+      `ネットワーク設定が無効です (Chain ID: ${chainId}): ${result.error.issues[0]?.message}`
+    );
   }
 
-  if (!config.name || typeof config.name !== 'string' || config.name.trim().length === 0) {
-    throw new NetworkError(`チェーンID ${chainId} のネットワーク名が無効です`);
-  }
-
-  validateUrl(config.explorerBaseUrl, `チェーンID ${chainId} のエクスプローラーURL`);
   validateChainConfig(config.chain, chainId);
 }
 
 /**
- * チェーンIDの基本検証
- * @param chainId 検証対象のチェーンID
- * @throws NetworkError 不正なチェーンIDの場合
- */
-function validateChainId(chainId: number): void {
-  if (!Number.isInteger(chainId) || chainId <= 0) {
-    throw new NetworkError(`不正なチェーンID: ${chainId}`);
-  }
-}
-
-/**
- * Anvil設定の動的取得判定
+ * Anvilネットワーク設定取得（該当する場合のみ）
  * @param chainId チェーンID
- * @returns AnvilチェーンIDの場合は設定、それ以外はundefined
+ * @returns Anvilネットワーク設定またはundefined
+ * @description Anvilの場合のみ動的設定を生成
  */
 function getAnvilConfigIfApplicable(chainId: number): NetworkConfig | undefined {
-  return isAnvilChainId(chainId) ? createAnvilNetworkConfig() : undefined;
+  if (isAnvilChainId(chainId)) {
+    return createAnvilNetworkConfig();
+  }
+  return undefined;
 }
 
 /**
- * ビルトインネットワーク設定の取得
+ * ビルトインネットワーク設定取得
  * @param chainId チェーンID
- * @returns ネットワーク設定（存在しない場合はundefined）
+ * @returns ビルトインネットワーク設定またはundefined
+ * @description 事前定義されたネットワーク設定の取得
  */
 function getBuiltinNetworkConfig(chainId: number): NetworkConfig | undefined {
-  // Anvilの場合は動的設定を返す
-  const anvilConfig = getAnvilConfigIfApplicable(chainId);
-  if (anvilConfig) {
-    return anvilConfig;
+  if (isBuiltinChainId(chainId)) {
+    return BUILTIN_NETWORK_CONFIGS[chainId];
   }
-
-  return (BUILTIN_NETWORK_CONFIGS as Record<number, NetworkConfig>)[chainId];
+  return undefined;
 }
 
 /**
- * 新規ネットワーク設定の検証
- * @param override 新規設定
+ * 新規ネットワーク設定のバリデーション
+ * @param override 設定オーバーライド
  * @param chainId チェーンID
- * @throws NetworkError 設定が不完全な場合
+ * @throws NetworkError 不正な設定の場合
+ * @description 新規追加される設定の検証
  */
-function validateNewNetworkConfig(override: Partial<NetworkConfig>, chainId: number): void {
-  if (!override.explorerBaseUrl || !override.name || !override.chain) {
+function validateNewNetworkConfig(
+  override: Partial<NetworkConfig>,
+  chainId: number
+): asserts override is NetworkConfig {
+  if (!override.chain) {
+    throw new NetworkError(`新規ネットワーク設定にはchain設定が必要です (Chain ID: ${chainId})`);
+  }
+
+  if (!override.name) {
+    throw new NetworkError(`新規ネットワーク設定にはname設定が必要です (Chain ID: ${chainId})`);
+  }
+
+  if (!override.explorerBaseUrl) {
     throw new NetworkError(
-      `新規チェーンID ${chainId} には explorerBaseUrl, name, chain の全てが必要です`
+      `新規ネットワーク設定にはexplorerBaseUrl設定が必要です (Chain ID: ${chainId})`
     );
   }
 }
 
 /**
- * 既存設定の部分上書き処理
- * @param baseConfig 基本設定
- * @param override 上書き設定
+ * 既存設定のマージ
+ * @param baseConfig ベース設定
+ * @param override オーバーライド設定
  * @param chainId チェーンID
  * @returns マージされた設定
+ * @description 既存設定に対する部分的なオーバーライド
  */
 function mergeExistingConfig(
   baseConfig: NetworkConfig,
   override: Partial<NetworkConfig>,
   chainId: number
 ): NetworkConfig {
-  const mergedConfig = { ...baseConfig, ...override } as NetworkConfig;
-  validateNetworkConfig(mergedConfig, chainId);
-  return mergedConfig;
+  const merged = {
+    ...baseConfig,
+    ...override,
+    chain: override.chain ? { ...baseConfig.chain, ...override.chain } : baseConfig.chain,
+  };
+
+  validateNetworkConfig(merged, chainId);
+  return merged;
 }
 
 /**
- * 新規設定の追加処理
+ * 新規設定の追加
  * @param override 新規設定
  * @param chainId チェーンID
- * @returns 検証済み新規設定
+ * @returns 新規ネットワーク設定
+ * @description 完全に新しいネットワーク設定の作成
  */
 function addNewConfig(override: Partial<NetworkConfig>, chainId: number): NetworkConfig {
   validateNewNetworkConfig(override, chainId);
-  const newConfig = override as NetworkConfig;
+
+  const newConfig: NetworkConfig = {
+    explorerBaseUrl: override.explorerBaseUrl,
+    name: override.name,
+    chain: override.chain,
+  };
+
   validateNetworkConfig(newConfig, chainId);
   return newConfig;
 }
 
 /**
- * ネットワーク設定の堅牢なマージ
- * @param overrides 上書き設定
- * @returns 安全にマージされた設定
- * @throws NetworkError 設定が不正な場合
+ * ネットワーク設定のマージ処理
+ * @param overrides 設定オーバーライド
+ * @returns マージされた設定マップ
+ * @description カスタム設定とビルトイン設定のマージ
  */
 function mergeNetworkConfigs(overrides: NetworkConfigOverrides): Record<number, NetworkConfig> {
-  const result: Record<number, NetworkConfig> = { ...BUILTIN_NETWORK_CONFIGS };
+  const merged: Record<number, NetworkConfig> = {};
 
-  // Anvilを動的に追加
-  result[ANVIL_CHAIN_ID] = createAnvilNetworkConfig();
+  // ビルトイン設定をベースとして追加
+  for (const [chainIdStr, config] of Object.entries(BUILTIN_NETWORK_CONFIGS)) {
+    const chainId = Number(chainIdStr);
+    merged[chainId] = config;
+  }
 
+  // オーバーライド設定を適用
   for (const [chainIdStr, override] of Object.entries(overrides)) {
     const chainId = Number(chainIdStr);
     validateChainId(chainId);
 
-    if (!override || typeof override !== 'object') {
-      continue;
-    }
+    const baseConfig = merged[chainId] || getAnvilConfigIfApplicable(chainId);
 
-    const baseConfig = getBuiltinNetworkConfig(chainId);
-    result[chainId] = baseConfig
-      ? mergeExistingConfig(baseConfig, override, chainId)
-      : addNewConfig(override, chainId);
+    if (baseConfig) {
+      merged[chainId] = mergeExistingConfig(baseConfig, override, chainId);
+    } else {
+      merged[chainId] = addNewConfig(override, chainId);
+    }
   }
 
-  return result;
+  return merged;
 }
 
 /**
- * ネットワーク設定の取得と検証（型安全版）
+ * ネットワーク設定の取得（ビルトインチェーンID用）
  * @param chainId ビルトインチェーンID
- * @param customNetworkConfigs カスタムネットワーク設定
- * @returns 検証済みのネットワーク設定（必ず存在することが保証される）
+ * @param customNetworkConfigs カスタムネットワーク設定（オプション）
+ * @returns ネットワーク設定
+ * @throws NetworkError 設定取得に失敗した場合
  */
 export function getNetworkConfig(
   chainId: BuiltinChainId,
@@ -306,11 +312,11 @@ export function getNetworkConfig(
 ): NetworkConfig;
 
 /**
- * ネットワーク設定の取得と検証（動的版）
- * @param chainId 任意のチェーンID
- * @param customNetworkConfigs カスタムネットワーク設定
- * @returns 検証済みのネットワーク設定
- * @throws NetworkError 設定が存在しないか不完全な場合
+ * ネットワーク設定の取得（任意のチェーンID用）
+ * @param chainId チェーンID
+ * @param customNetworkConfigs カスタムネットワーク設定（オプション）
+ * @returns ネットワーク設定
+ * @throws NetworkError 設定取得に失敗した場合
  */
 export function getNetworkConfig(
   chainId: number,
@@ -318,11 +324,12 @@ export function getNetworkConfig(
 ): NetworkConfig;
 
 /**
- * ネットワーク設定の取得と検証（実装）
+ * ネットワーク設定の取得（統合実装）
  * @param chainId チェーンID
- * @param customNetworkConfigs カスタムネットワーク設定
- * @returns 検証済みのネットワーク設定
- * @throws NetworkError 設定が存在しないか不完全な場合
+ * @param customNetworkConfigs カスタムネットワーク設定（オプション）
+ * @returns ネットワーク設定
+ * @throws NetworkError 設定取得に失敗した場合
+ * @description ビジネスロジックの調整とワークフロー制御
  */
 export function getNetworkConfig(
   chainId: number,
@@ -330,37 +337,49 @@ export function getNetworkConfig(
 ): NetworkConfig {
   validateChainId(chainId);
 
-  const configs = customNetworkConfigs
-    ? mergeNetworkConfigs(customNetworkConfigs)
-    : (() => {
-        const result: Record<number, NetworkConfig> = { ...BUILTIN_NETWORK_CONFIGS };
-        // Anvilを動的に追加
-        result[ANVIL_CHAIN_ID] = createAnvilNetworkConfig();
-        return result;
-      })();
-
-  const config = configs[chainId];
-  if (!config) {
-    throw new NetworkError(`サポートされていないチェーンID: ${chainId}`);
+  // カスタム設定が提供されている場合はマージ処理
+  if (customNetworkConfigs) {
+    const mergedConfigs = mergeNetworkConfigs(customNetworkConfigs);
+    const config = mergedConfigs[chainId];
+    if (config) {
+      return config;
+    }
   }
 
-  validateNetworkConfig(config, chainId);
-  return config;
+  // Anvil設定の確認
+  const anvilConfig = getAnvilConfigIfApplicable(chainId);
+  if (anvilConfig) {
+    return anvilConfig;
+  }
+
+  // ビルトイン設定の確認
+  const builtinConfig = getBuiltinNetworkConfig(chainId);
+  if (builtinConfig) {
+    return builtinConfig;
+  }
+
+  throw new NetworkError(
+    `未サポートのチェーンID: ${chainId}. サポートされているチェーンID: ${Object.keys(BUILTIN_NETWORK_CONFIGS).join(', ')}, ${ANVIL_CHAIN_ID}`
+  );
 }
 
 /**
- * サポートされている全ネットワークの取得
- * @returns サポートネットワークのリスト
+ * サポートされているすべてのネットワークの取得
+ * @returns サポートされているネットワークの配列
+ * @description 利用可能なネットワーク一覧の提供
  */
 export function getAllSupportedNetworks(): Array<{ chainId: number; config: NetworkConfig }> {
-  const networks: Array<{ chainId: number; config: NetworkConfig }> = Object.entries(BUILTIN_NETWORK_CONFIGS).map(([chainId, config]) => {
-    return {
-      chainId: Number(chainId),
-      config: config as NetworkConfig,
-    };
-  });
+  const networks: Array<{ chainId: number; config: NetworkConfig }> = [];
 
-  // Anvilを動的に追加
+  // ビルトインネットワークを追加
+  for (const [chainIdStr, config] of Object.entries(BUILTIN_NETWORK_CONFIGS)) {
+    networks.push({
+      chainId: Number(chainIdStr),
+      config,
+    });
+  }
+
+  // Anvilネットワークを追加
   networks.push({
     chainId: ANVIL_CHAIN_ID,
     config: createAnvilNetworkConfig(),
@@ -370,14 +389,14 @@ export function getAllSupportedNetworks(): Array<{ chainId: number; config: Netw
 }
 
 /**
- * ネットワークタイプの型定義
- * @description ネットワークの分類（テストネット、カスタム）
+ * ネットワークタイプの定義
+ * @description UI表示用のネットワーク種別
  */
 export type NetworkType = 'testnet' | 'custom';
 
 /**
- * 表示用ネットワーク情報の型定義
- * @description CLI層で使用する表示情報
+ * 表示用ネットワーク情報
+ * @description UI表示に最適化された情報
  */
 export interface DisplayNetworkInfo {
   name: string;
@@ -386,38 +405,36 @@ export interface DisplayNetworkInfo {
 }
 
 /**
- * チェーンIDからネットワークタイプを判定
- * @param chainId 判定対象のチェーンID
+ * ネットワークタイプの判定
+ * @param chainId チェーンID
  * @returns ネットワークタイプ
+ * @description UI表示用の分類
  */
 function getNetworkType(chainId: number): NetworkType {
-  // Sepolia テストネット または Hoodi テストネット
-  if (chainId === SEPOLIA_CHAIN_ID || chainId === HOODI_CHAIN_ID) {
+  if (isAnvilChainId(chainId) || isBuiltinChainId(chainId)) {
     return 'testnet';
   }
-
-  // Anvilはカスタムネットワークとして扱う
   return 'custom';
 }
 
 /**
- * CLI表示用のネットワーク情報取得
- * @param chainId 対象チェーンID
+ * 表示用ネットワーク情報の取得
+ * @param chainId チェーンID
  * @returns 表示用ネットワーク情報
- * @description core/の責任でネットワーク情報を提供、CLI層は表示のみに集中
+ * @description UI制御のための情報提供
  */
 export function getDisplayNetworkInfo(chainId: number): DisplayNetworkInfo {
   try {
-    const networkConfig = getNetworkConfig(chainId);
+    const config = getNetworkConfig(chainId);
     return {
-      name: networkConfig.name,
-      explorer: networkConfig.explorerBaseUrl,
+      name: config.name,
+      explorer: config.explorerBaseUrl,
       type: getNetworkType(chainId),
     };
   } catch {
     return {
-      name: `Unknown Network (Chain ID: ${chainId})`,
-      explorer: 'Unknown',
+      name: `Unknown Network (${chainId})`,
+      explorer: 'N/A',
       type: 'custom',
     };
   }

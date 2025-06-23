@@ -1,47 +1,50 @@
-import { http, createPublicClient } from 'viem';
+import { createPublicClient, http } from 'viem';
 import type { Hex } from 'viem';
-import type { EIP1559TxParams } from '../types/schema';
 import { broadcastTransaction } from './broadcaster';
-import { type NonceRetryResult, executeWithNonceRetry } from './nonceRetry';
+import { executeWithNonceRetry, type NonceRetrySuccessResult } from './nonceRetry';
 import { signEIP1559TransactionOffline } from './signer';
 import { getNetworkConfig } from './networkConfig';
-import { logger as defaultLogger, type Logger as BaseLogger } from '../utils/logger';
+import {
+  validateTransactionProcessorOptions,
+  type TransactionProcessorOptions,
+  type EIP1559TxParams,
+} from '../types/schema';
+import { logger as defaultLogger } from '../utils/logger';
 
 /**
- * デフォルトのリトライ回数
- * @description Nonceエラー時の最大リトライ回数のデフォルト値
+ * デフォルト設定値
  */
-export const DEFAULT_MAX_RETRIES = 10;
+export const DEFAULT_MAX_RETRIES = 3;
 
 /**
  * ロガーインターフェース
- * @description 依存性注入パターンでログ出力を抽象化
+ * @description テスト可能性のための依存性注入パターン
  */
 export interface Logger {
   info(message: string): void;
+  warn(message: string): void;
   error(message: string): void;
 }
 
 /**
  * デフォルトロガー実装
- * @description 環境に応じた適切なロガーを使用
+ * @description 環境に応じた適切なログ出力
  */
-const DEFAULT_LOGGER: Logger = {
+let loggerInstance: Logger = {
   info: (message: string) => defaultLogger.info(message),
+  warn: (message: string) => defaultLogger.warn(message),
   error: (message: string) => defaultLogger.error(message),
 };
 
+export const logger: Logger = loggerInstance;
+
 /**
- * トランザクション処理オプション設定
- * @description 署名からブロードキャストまでの統合処理に必要な全パラメータ
+ * ロガーインスタンスの設定（テスト環境用）
+ * @param newLogger 新しいロガーインスタンス
+ * @description テスト環境でのログ抑制やカスタムロガーの設定
  */
-export interface TransactionProcessorOptions {
-  readonly privateKey: `0x${string}`;
-  readonly txParams: EIP1559TxParams;
-  readonly rpcUrl?: string;
-  readonly broadcast: boolean;
-  readonly maxRetries?: number;
-  readonly logger?: Logger;
+export function setLogger(newLogger: Logger): void {
+  loggerInstance = newLogger;
 }
 
 /**
@@ -70,38 +73,6 @@ export interface TransactionProcessorResult {
 }
 
 /**
- * 入力パラメータのバリデーション
- * @param options トランザクション処理オプション
- * @throws Error バリデーション失敗時
- * @description 入力値の妥当性検証のみ
- */
-function validateProcessorOptions(
-  options: unknown
-): asserts options is TransactionProcessorOptions {
-  if (!options || typeof options !== 'object') {
-    throw new Error('TransactionProcessorOptionsが指定されていません');
-  }
-
-  const opts = options as Partial<TransactionProcessorOptions>;
-
-  if (!opts.privateKey || typeof opts.privateKey !== 'string') {
-    throw new Error('privateKeyが指定されていません');
-  }
-
-  if (!opts.txParams || typeof opts.txParams !== 'object') {
-    throw new Error('txParamsが指定されていません');
-  }
-
-  if (typeof opts.broadcast !== 'boolean') {
-    throw new Error('broadcastはboolean値である必要があります');
-  }
-
-  if (opts.broadcast && (!opts.rpcUrl || typeof opts.rpcUrl !== 'string')) {
-    throw new Error('ブロードキャスト時にはrpcUrlが必要です');
-  }
-}
-
-/**
  * チェーンIDに基づく適切なチェーン設定の取得
  * @param chainId 対象チェーンID
  * @returns viemチェーン設定
@@ -115,13 +86,13 @@ function getChainConfig(chainId: number) {
 
 /**
  * トランザクション情報の成功ログ出力
- * @param retryResult リトライ結果
+ * @param retryResult リトライ結果（成功のみ）
  * @param receipt トランザクションレシート
  * @param logger ロガー
  * @description 成功時のトランザクション情報ログ出力のみ
  */
 function logTransactionSuccess(
-  retryResult: NonceRetryResult,
+  retryResult: NonceRetrySuccessResult,
   receipt: { blockNumber: bigint; gasUsed: bigint },
   logger: Logger
 ): void {
@@ -135,13 +106,13 @@ function logTransactionSuccess(
 
 /**
  * トランザクション情報のエラーログ出力
- * @param retryResult リトライ結果
+ * @param retryResult リトライ結果（成功のみ）
  * @param errorMessage エラーメッセージ
  * @param logger ロガー
  * @description エラー時のトランザクション情報ログ出力のみ
  */
 function logTransactionError(
-  retryResult: NonceRetryResult,
+  retryResult: NonceRetrySuccessResult,
   errorMessage: string,
   logger: Logger
 ): void {
@@ -154,19 +125,19 @@ function logTransactionError(
 
 /**
  * 成功時のブロードキャスト結果作成
- * @param retryResult リトライ結果
+ * @param retryResult リトライ結果（成功のみ）
  * @param receipt トランザクションレシート
  * @returns ブロードキャスト結果
  * @description 成功結果の作成のみ
  */
 function createSuccessBroadcastResult(
-  retryResult: NonceRetryResult,
+  retryResult: NonceRetrySuccessResult,
   receipt: { blockNumber: bigint; gasUsed: bigint }
 ): NonNullable<TransactionProcessorResult['broadcast']> {
   const result: NonNullable<TransactionProcessorResult['broadcast']> = {
     broadcastCompleted: true,
     status: 'SUCCESS',
-    transactionHash: retryResult.transactionHash!,
+    transactionHash: retryResult.transactionHash,
     blockNumber: receipt.blockNumber,
     gasUsed: receipt.gasUsed,
     finalNonce: retryResult.finalNonce,
@@ -182,19 +153,19 @@ function createSuccessBroadcastResult(
 
 /**
  * エラー時のブロードキャスト結果作成
- * @param retryResult リトライ結果
+ * @param retryResult リトライ結果（成功のみ）
  * @param errorMessage エラーメッセージ
  * @returns ブロードキャスト結果
  * @description エラー結果の作成のみ
  */
 function createErrorBroadcastResult(
-  retryResult: NonceRetryResult,
+  retryResult: NonceRetrySuccessResult,
   errorMessage: string
 ): NonNullable<TransactionProcessorResult['broadcast']> {
   const result: NonNullable<TransactionProcessorResult['broadcast']> = {
     broadcastCompleted: true,
     status: 'BROADCASTED_BUT_UNCONFIRMED',
-    transactionHash: retryResult.transactionHash!,
+    transactionHash: retryResult.transactionHash,
     finalNonce: retryResult.finalNonce,
     retryCount: retryResult.retryCount,
     error: `レシート取得エラー: ${errorMessage}`,
@@ -214,19 +185,14 @@ function createErrorBroadcastResult(
  * @param rpcUrl レシート取得用RPCエンドポイント
  * @param logger ロガー
  * @returns ブロードキャスト結果（ブロック情報とガス使用量を含む）
- * @throws Error トランザクションハッシュが存在しない場合
  * @description waitForTransactionReceiptでマイニング完了を待機、エラー時もハッシュは表示
  */
 async function handleTransactionReceipt(
-  retryResult: NonceRetryResult,
+  retryResult: NonceRetrySuccessResult,
   txParams: EIP1559TxParams,
   rpcUrl: string,
   logger: Logger
 ): Promise<NonNullable<TransactionProcessorResult['broadcast']>> {
-  if (!retryResult.transactionHash) {
-    throw new Error('Transaction hash is required for receipt handling');
-  }
-
   try {
     logger.info('⏳ トランザクションのマイニング完了を待機中...');
 
@@ -256,10 +222,10 @@ async function handleTransactionReceipt(
  * @param privateKey 署名用秘密鍵
  * @param txParams トランザクションパラメータ
  * @param rpcUrl ブロードキャスト先RPCエンドポイント
- * @param maxRetries Nonceエラー時の最大リトライ回数
+ * @param maxRetries 最大リトライ回数
  * @param logger ロガー
- * @returns ブロードキャスト結果（成功・失敗情報とレシート詳細）
- * @description Nonceリトライ機能付きで署名・ブロードキャスト・レシート取得を統合実行
+ * @returns ブロードキャスト結果（レシート情報を含む）
+ * @description Nonceリトライとレシート取得を含む完全なブロードキャストフロー
  */
 async function handleBroadcast(
   privateKey: `0x${string}`,
@@ -268,13 +234,12 @@ async function handleBroadcast(
   maxRetries: number,
   logger: Logger
 ): Promise<NonNullable<TransactionProcessorResult['broadcast']>> {
-  logger.info('📡 トランザクションをブロードキャスト中...');
+  logger.info('📡 トランザクションのブロードキャストを開始...');
 
-  // トランザクション実行関数を定義（nonceRetryで使用）
   const executeTransaction = async (nonce: number) => {
-    const txParamsWithNonce = { ...txParams, nonce };
-    const signedTx = await signEIP1559TransactionOffline(privateKey, txParamsWithNonce);
-    return await broadcastTransaction(signedTx, txParams.chainId, rpcUrl);
+    const updatedParams = { ...txParams, nonce };
+    const signedTx = await signEIP1559TransactionOffline(privateKey, updatedParams);
+    return await broadcastTransaction(signedTx, updatedParams.chainId, rpcUrl);
   };
 
   const retryResult = await executeWithNonceRetry({
@@ -284,65 +249,65 @@ async function handleBroadcast(
     logger,
   });
 
-  if (retryResult.success && retryResult.transactionHash) {
-    logger.info('🎉 ブロードキャスト成功!');
-    if (retryResult.explorerUrl) {
-      logger.info('🔗 エクスプローラーURL準備中...');
-    }
-
-    return await handleTransactionReceipt(retryResult, txParams, rpcUrl, logger);
+  if (!retryResult.success) {
+    return {
+      broadcastCompleted: false,
+      status: 'FAILED',
+      finalNonce: retryResult.finalNonce,
+      retryCount: retryResult.retryCount,
+      error: retryResult.error.message,
+    };
   }
 
-  logger.error(`❌ ブロードキャスト失敗: ${retryResult.error?.message}`);
-
-  return {
-    broadcastCompleted: false,
-    status: 'FAILED',
-    finalNonce: retryResult.finalNonce,
-    retryCount: retryResult.retryCount,
-    error: retryResult.error?.message || 'Unknown error',
-  };
+  return await handleTransactionReceipt(retryResult, txParams, rpcUrl, logger);
 }
 
 /**
- * トランザクション処理の統合実行
- * @param options 処理オプション（秘密鍵、パラメータ、ブロードキャスト設定等）
+ * トランザクションの包括的処理
+ * @param options 処理オプション（秘密鍵、パラメータ、ブロードキャスト設定）
  * @returns 処理結果（署名済みトランザクションとブロードキャスト結果）
- * @throws Error バリデーション失敗またはブロードキャスト指定時にRPC URLが未設定の場合
- * @description オフライン署名からブロードキャスト、レシート取得までの一連の処理を統合
+ * @throws Error バリデーションエラーまたは処理エラー
+ * @description 署名のみまたは署名+ブロードキャストの完全なワークフロー制御
  */
 export async function processTransaction(
   options: TransactionProcessorOptions
 ): Promise<TransactionProcessorResult> {
-  validateProcessorOptions(options);
+  // 常に本番環境の厳しいバリデーションを実行
+  const validatedOptions = validateTransactionProcessorOptions(options);
 
   const {
     privateKey,
     txParams,
-    rpcUrl,
     broadcast,
+    rpcUrl,
     maxRetries = DEFAULT_MAX_RETRIES,
-    logger = DEFAULT_LOGGER,
-  } = options;
+    logger: userLogger = loggerInstance,
+  } = validatedOptions;
 
-  // 1. オフライン署名の実行
-  const signedTransaction = await signEIP1559TransactionOffline(privateKey, txParams);
-  logger.info(`✅ オフライン署名完了: ${signedTransaction}`);
+  // 1. オフライン署名（必須処理）
+  userLogger.info('🔐 トランザクションの署名を開始...');
+  const signedTransaction = await signEIP1559TransactionOffline(
+    privateKey as `0x${string}`,
+    txParams
+  );
+  userLogger.info(`✅ 署名完了: ${signedTransaction}`);
 
-  const result: TransactionProcessorResult = {
-    signedTransaction,
-  };
-
-  // 2. 署名したtxのブロードキャスト（オプション）
-  if (broadcast) {
-    result.broadcast = await handleBroadcast(privateKey, txParams, rpcUrl!, maxRetries, logger);
-  } else {
-    logger.info(
-      'ℹ️  --broadcastオプションが指定されていないため、署名されたトランザクションは送信されませんでした。'
-    );
-    logger.info('📋 署名されたトランザクション（16進数）:');
-    logger.info(signedTransaction);
+  // 2. ブロードキャスト処理（オプション）
+  if (!broadcast) {
+    userLogger.info('📝 オフライン署名のみ完了しました。ブロードキャストはスキップされます。');
+    return { signedTransaction };
   }
 
-  return result;
+  const broadcastResult = await handleBroadcast(
+    privateKey as `0x${string}`,
+    txParams,
+    rpcUrl,
+    maxRetries,
+    userLogger
+  );
+
+  return {
+    signedTransaction,
+    broadcast: broadcastResult,
+  };
 }

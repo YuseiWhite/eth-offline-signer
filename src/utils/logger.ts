@@ -1,6 +1,6 @@
 /**
- * 🔧 テスト制御可能ロガーシステム
- * テスト環境では出力を抑制し、本番環境では通常出力する
+ * 🔧 ロガーシステム
+ * 本番環境では通常出力する
  */
 
 /**
@@ -13,14 +13,7 @@ export interface Logger {
 }
 
 /**
- * テスト環境判定
- */
-function isTestEnvironment(): boolean {
-  return process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
-}
-
-/**
- * 本番用ロガー（標準コンソール出力）
+ * ロガー（標準コンソール出力）
  */
 const productionLogger: Logger = {
   info: (message: string) => console.info(message),
@@ -29,19 +22,9 @@ const productionLogger: Logger = {
 };
 
 /**
- * テスト用サイレントロガー（出力なし）
- */
-const silentLogger: Logger = {
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-};
-
-/**
  * 現在の環境に適したロガーインスタンス
- * テスト環境では自動的にサイレントモードになる
  */
-export const logger: Logger = isTestEnvironment() ? silentLogger : productionLogger;
+export const logger: Logger = productionLogger;
 
 /**
  * テスト用のロガーオーバーライド機能

@@ -1,3 +1,5 @@
+import { ErrorObjectSchema, ErrorStringSchema } from '../types/schema';
+
 /**
  * アプリケーション基底エラークラス
  * @description 全てのカスタムエラーの基底クラス、スタックトレース最適化を含む
@@ -102,14 +104,18 @@ export function handleCliError(error: unknown, exit = true): void {
 
   if (error instanceof EthOfflineSignerError) {
     errorMessage = error.message;
-  } else if (error instanceof Error) {
-    // 予期しない標準エラーオブジェクトの場合
-    errorMessage = `An unexpected error occurred: ${error.message}`;
-    // デバッグ用にスタックトレースを出力することも検討できるが、
-    // ユーザー向けにはシンプルなメッセージが良い。CI環境などではスタックも有用。
-    // console.error(error.stack); // デバッグ用
-  } else if (typeof error === 'string') {
-    errorMessage = error;
+  } else {
+    // ドメイン層のスキーマを使用したエラーオブジェクト検証
+    const errorResult = ErrorObjectSchema.safeParse(error);
+    if (errorResult.success) {
+      errorMessage = `An unexpected error occurred: ${errorResult.data.message}`;
+    } else {
+      // 文字列エラーの検証
+      const stringResult = ErrorStringSchema.safeParse(error);
+      if (stringResult.success) {
+        errorMessage = stringResult.data;
+      }
+    }
   }
 
   console.error(`Error: ${errorMessage}`);
