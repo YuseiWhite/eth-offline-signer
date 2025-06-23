@@ -145,6 +145,7 @@ export const NetworkConfigSchema = z.object({
  */
 export const LoggerSchema = z.object({
   info: z.function().args(z.string()).returns(z.void()),
+  warn: z.function().args(z.string()).returns(z.void()),
   error: z.function().args(z.string()).returns(z.void()),
 });
 
