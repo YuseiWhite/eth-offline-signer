@@ -72,7 +72,6 @@ export async function runCli(options: CliOptions) {
     };
 
     await processTransaction(processorOptions);
-
   } finally {
     // finallyブロックはこちらに移動。coreロジックのリソース解放はcoreが責任を持つ。
     if (privateKeyHandle?.cleanup) {
