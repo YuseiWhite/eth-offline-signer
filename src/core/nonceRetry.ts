@@ -137,11 +137,13 @@ export async function executeWithNonceRetry(options: NonceRetryOptions): Promise
 
   let currentNonce = txParams.nonce;
   let lastError: Error | null = null;
+  let actualAttempts = 0;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    actualAttempts = attempt + 1;
     try {
       logger.info(
-        `🔄 トランザクション実行中... (試行 ${attempt + 1}/${maxRetries + 1}, Nonce: ${currentNonce})`
+        `🔄 トランザクション実行中... (試行 ${actualAttempts}/${maxRetries + 1}, Nonce: ${currentNonce})`
       );
 
       const result = await executeTransaction(currentNonce);
@@ -175,6 +177,6 @@ export async function executeWithNonceRetry(options: NonceRetryOptions): Promise
   return buildFailureResult(
     lastError || new Error('不明なエラーが発生しました'),
     currentNonce,
-    maxRetries
+    actualAttempts
   );
 }
