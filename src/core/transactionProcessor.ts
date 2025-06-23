@@ -281,25 +281,21 @@ export async function processTransaction(
     broadcast,
     rpcUrl,
     maxRetries = DEFAULT_MAX_RETRIES,
-    logger = DEFAULT_LOGGER,
+    logger: userLogger = loggerInstance,
   } = validatedOptions;
 
   // 1. オフライン署名（必須処理）
-  logger.info('🔐 トランザクションの署名を開始...');
+  userLogger.info('🔐 トランザクションの署名を開始...');
   const signedTransaction = await signEIP1559TransactionOffline(
     privateKey as `0x${string}`,
     txParams
   );
-  logger.info(`✅ 署名完了: ${signedTransaction}`);
+  userLogger.info(`✅ 署名完了: ${signedTransaction}`);
 
   // 2. ブロードキャスト処理（オプション）
   if (!broadcast) {
-    logger.info('📝 オフライン署名のみ完了しました。ブロードキャストはスキップされます。');
+    userLogger.info('📝 オフライン署名のみ完了しました。ブロードキャストはスキップされます。');
     return { signedTransaction };
-  }
-
-  if (!rpcUrl) {
-    throw new Error('ブロードキャスト時にはrpcUrlが必要です');
   }
 
   const broadcastResult = await handleBroadcast(
@@ -307,7 +303,7 @@ export async function processTransaction(
     txParams,
     rpcUrl,
     maxRetries,
-    logger
+    userLogger
   );
 
   return {
