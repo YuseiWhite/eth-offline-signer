@@ -30,11 +30,22 @@ export interface Logger {
  * デフォルトロガー実装
  * @description 環境に応じた適切なログ出力
  */
-const DEFAULT_LOGGER: Logger = {
+let loggerInstance: Logger = {
   info: (message: string) => defaultLogger.info(message),
   warn: (message: string) => defaultLogger.warn(message),
   error: (message: string) => defaultLogger.error(message),
 };
+
+export const logger: Logger = loggerInstance;
+
+/**
+ * ロガーインスタンスの設定（テスト環境用）
+ * @param newLogger 新しいロガーインスタンス
+ * @description テスト環境でのログ抑制やカスタムロガーの設定
+ */
+export function setLogger(newLogger: Logger): void {
+  loggerInstance = newLogger;
+}
 
 /**
  * ブロードキャストステータス
