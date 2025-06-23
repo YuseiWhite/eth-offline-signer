@@ -1,289 +1,157 @@
+import { createPublicClient, http } from 'viem';
 import type { Hex } from 'viem';
-import {
-  http,
-  type Chain,
-  type Transaction,
-  createPublicClient,
-  createWalletClient,
-  keccak256,
-} from 'viem';
-import { BroadcastError, NetworkError } from '../utils/errors';
-import { type NetworkConfigOverrides, getNetworkConfig } from './networkConfig';
-import { logger as defaultLogger } from '../utils/logger';
+import { getNetworkConfig } from './networkConfig';
+import { RpcUrlSchema, SignedTransactionSchema, ErrorObjectSchema } from '../types/schema';
+import { NetworkError, BroadcastError } from '../utils/errors';
 
 /**
- * ブロードキャスト結果の型定義
- * @description トランザクションハッシュとエクスプローラーURLを提供
+ * ネットワーク設定の取得とバリデーション
+ * @param chainId 対象チェーンID
+ * @param customRpcUrl カスタムRPCエンドポイント（オプション）
+ * @returns 検証済みネットワーク設定
+ * @throws NetworkError 不正なチェーンIDまたはRPC URL
+ * @description ネットワーク設定の取得とRPC URLの検証を統合
  */
-interface BroadcastResult {
-  transactionHash: Hex;
-  explorerUrl: string;
-}
-
-/**
- * ロガーインターフェース（依存性注入用）
- */
-interface Logger {
-  info(message: string): void;
-  error(message: string): void;
-}
-
-/**
- * ブロードキャストオプション
- */
-interface BroadcastOptions {
-  logger?: Logger;
-  maxRetries?: number;
-  retryDelay?: number;
-}
-
-/**
- * デフォルトロガー（環境に応じた出力制御）
- */
-const DEFAULT_LOGGER: Logger = {
-  info: (message) => defaultLogger.info(message),
-  error: (message) => defaultLogger.error(message),
-};
-
-/**
- * RPC URLの堅牢な検証
- * @param rpcUrl 検証対象のRPC URL
- * @throws NetworkError 不正なURLの場合
- */
-function validateRpcUrl(rpcUrl: string): void {
-  if (!rpcUrl || typeof rpcUrl !== 'string') {
-    throw new NetworkError('RPC URLが指定されていません');
-  }
-
+function getValidatedNetworkConfig(chainId: number, customRpcUrl?: string) {
   try {
-    const url = new URL(rpcUrl);
-    if (!['http:', 'https:'].includes(url.protocol)) {
-      throw new NetworkError(
-        `不正なRPCプロトコル: ${url.protocol}。HTTP/HTTPSのみサポートされています`
-      );
-    }
+    const networkConfig = getNetworkConfig(chainId);
+    const rpcUrl = customRpcUrl || networkConfig.chain.rpcUrls.default.http[0];
 
-    // ホスト名の基本検証
-    if (!url.hostname || url.hostname.length === 0) {
-      throw new NetworkError('RPC URLのホスト名が無効です');
-    }
+    // ドメイン層でのRPC URLバリデーション
+    const validatedRpcUrl = RpcUrlSchema.parse(rpcUrl);
+
+    return {
+      networkConfig,
+      rpcUrl: validatedRpcUrl,
+    };
   } catch (error) {
-    if (error instanceof NetworkError) {
-      throw error;
+    if (error instanceof Error) {
+      throw new NetworkError(`ネットワーク設定の取得に失敗しました: ${error.message}`);
     }
-    throw new NetworkError(`不正なRPC URL形式: ${rpcUrl}`);
+    throw new NetworkError('ネットワーク設定の取得に失敗しました');
   }
 }
 
 /**
- * トランザクションハッシュの計算
- * @param signedTransaction 署名済みトランザクション
- * @returns 計算されたトランザクションハッシュ
- * @description keccak256を使用してトランザクションハッシュを計算
+ * 署名済みトランザクションの検証
+ * @param signedTransaction 検証対象の署名済みトランザクション
+ * @returns 検証済み署名済みトランザクション
+ * @throws BroadcastError 無効なトランザクション形式
+ * @description ドメイン層のスキーマを使用した検証
  */
-function calculateTransactionHash(signedTransaction: Hex): Hex {
-  return keccak256(signedTransaction);
-}
-
-/**
- * 指数バックオフによる待機
- * @param attempt 試行回数（0ベース）
- * @param baseDelay ベース遅延時間（ミリ秒）
- */
-async function exponentialBackoff(attempt: number, baseDelay: number): Promise<void> {
-  const delay = baseDelay * 2 ** attempt;
-  await new Promise((resolve) => setTimeout(resolve, delay));
-}
-
-/**
- * 再試行機能付きRPC通信
- * @param transactionHash 取得対象のトランザクションハッシュ
- * @param rpcUrl 使用するRPCエンドポイント
- * @param chain viemチェーン設定
- * @param maxRetries 最大再試行回数
- * @param retryDelay ベース遅延時間
- * @param logger ロガーインスタンス
- * @returns トランザクション情報（存在しない場合はnull）
- */
-async function fetchTransactionFromRpc(
-  transactionHash: Hex,
-  rpcUrl: string,
-  chain: Chain,
-  maxRetries = 3,
-  retryDelay = 1000,
-  logger: Logger = DEFAULT_LOGGER
-): Promise<Transaction | null> {
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      const publicClient = createPublicClient({
-        chain,
-        transport: http(rpcUrl),
-      });
-
-      const transaction = await publicClient.getTransaction({ hash: transactionHash });
-
-      if (attempt > 0) {
-        logger.info(`RPC取得成功（${attempt + 1}回目の試行）: ${transactionHash}`);
-      }
-
-      return transaction;
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      lastError = new Error(errorMessage);
-
-      if (attempt < maxRetries) {
-        logger.info(`RPC取得失敗、再試行中... (${attempt + 1}/${maxRetries + 1}): ${errorMessage}`);
-        await exponentialBackoff(attempt, retryDelay);
-      }
-    }
+function validateSignedTransaction(signedTransaction: unknown): Hex {
+  try {
+    return SignedTransactionSchema.parse(signedTransaction);
+  } catch (error) {
+    throw new BroadcastError(`無効な署名済みトランザクション形式です: ${(error as Error).message}`);
   }
-
-  const message = lastError?.message || 'Unknown error';
-  throw new BroadcastError(`RPC取得失敗（${maxRetries + 1}回試行）: ${message}`);
 }
 
 /**
- * 既知エラーの判定
- * @param error 判定対象のエラーオブジェクト
- * @returns 既知のエラーであればtrue、そうでなければfalse
+ * ブロードキャストエラーの判定
+ * @param error エラーオブジェクト
+ * @returns ブロードキャストエラーかどうか
+ * @description ドメイン層のスキーマを使用したエラー判定
  */
-function isKnownTransactionError(error: unknown): boolean {
-  if (!(error instanceof Error)) {
+function isBroadcastError(error: unknown): boolean {
+  const result = ErrorObjectSchema.safeParse(error);
+  if (!result.success) {
     return false;
   }
-  const errorObj = error as Error & { details?: string };
-  return (
-    (typeof errorObj.details === 'string' && errorObj.details.includes('already known')) ||
-    errorObj.message.includes('already known')
+
+  const errorObj = result.data;
+  const errorMessages = [errorObj.message || '', errorObj.details || ''];
+
+  const broadcastErrorPatterns = [
+    /transaction.*failed/i,
+    /insufficient.*funds/i,
+    /gas.*too.*low/i,
+    /nonce.*too.*low/i,
+    /replacement.*transaction.*underpriced/i,
+  ];
+
+  return broadcastErrorPatterns.some((pattern) =>
+    errorMessages.some((message) => pattern.test(message))
   );
 }
 
 /**
- * 既知のトランザクションエラーの処理
- * @param signedTransaction 署名済みトランザクション（ハッシュ計算用）
- * @param rpcUrl トランザクション確認用のRPCエンドポイント
- * @param chain viemチェーン設定
- * @param maxRetries 最大再試行回数
- * @param retryDelay ベース遅延時間
- * @param logger ロガーインスタンス
- * @returns トランザクションハッシュ（確認済み）
- * @throws BroadcastError トランザクション確認に失敗した場合
- * @description 既知のトランザクションの存在確認とハッシュ返却
+ * エクスプローラーURLの生成
+ * @param transactionHash トランザクションハッシュ
+ * @param chainId チェーンID
+ * @returns エクスプローラーURL（利用可能な場合）
+ * @description ネットワーク設定からエクスプローラーURLを生成
  */
-async function handleKnownTransactionError(
-  signedTransaction: Hex,
-  rpcUrl: string,
-  chain: Chain,
-  maxRetries: number,
-  retryDelay: number,
-  logger: Logger
-): Promise<Hex> {
-  const hash = calculateTransactionHash(signedTransaction);
-  logger.info(`🔍 既知のトランザクション確認中: ${hash}`);
+function generateExplorerUrl(transactionHash: Hex, chainId: number): string | undefined {
+  try {
+    const networkConfig = getNetworkConfig(chainId);
+    return networkConfig.explorerBaseUrl
+      ? `${networkConfig.explorerBaseUrl}/tx/${transactionHash}`
+      : undefined;
+  } catch {
+    // エクスプローラーURL生成の失敗は致命的エラーではない
+    return undefined;
+  }
+}
 
-  const transaction = await fetchTransactionFromRpc(
-    hash,
-    rpcUrl,
-    chain,
-    maxRetries,
-    retryDelay,
-    logger
-  );
-  if (transaction) {
-    logger.info(`✅ トランザクション確認済み: ${hash}`);
-    return hash;
+/**
+ * トランザクションブロードキャスト結果の構築
+ * @param transactionHash トランザクションハッシュ
+ * @param chainId チェーンID
+ * @returns ブロードキャスト結果
+ * @description 成功結果の構築
+ */
+function buildBroadcastResult(
+  transactionHash: Hex,
+  chainId: number
+): { transactionHash: Hex; explorerUrl?: string } {
+  const explorerUrl = generateExplorerUrl(transactionHash, chainId);
+
+  if (explorerUrl) {
+    return { transactionHash, explorerUrl };
   }
 
-  throw new BroadcastError(`既知のトランザクションが確認できませんでした: ${hash}`);
-}
-
-/**
- * エクスプローラーURLの安全な生成
- * @param transactionHash トランザクションハッシュ
- * @param explorerBaseUrl エクスプローラーのベースURL
- * @returns 生成されたエクスプローラーURL
- * @description XSS攻撃を防ぐためURLエンコーディングを実行
- */
-function generateExplorerUrl(transactionHash: Hex, explorerBaseUrl: string): string {
-  // XSS対策：URLエンコーディング
-  const sanitizedHash = encodeURIComponent(transactionHash);
-  return `${explorerBaseUrl}/tx/${sanitizedHash}`;
+  return { transactionHash };
 }
 
 /**
  * 署名済みトランザクションのブロードキャスト
  * @param signedTransaction 署名済みトランザクション（0xプレフィックス付き）
  * @param chainId 対象チェーンID
- * @param rpcUrl カスタムRPCエンドポイント
- * @param customNetworkConfigs オプション: ネットワーク設定の上書き・追加
- * @param options オプション: ロガー、再試行設定
+ * @param customRpcUrl カスタムRPCエンドポイント（オプション）
  * @returns ブロードキャスト結果
  * @throws NetworkError ネットワーク設定エラーの場合
  * @throws BroadcastError ブロードキャスト失敗の場合
+ * @description ビジネスロジックの調整とワークフロー制御
  */
 export async function broadcastTransaction(
-  signedTransaction: Hex,
+  signedTransaction: unknown,
   chainId: number,
-  rpcUrl: string,
-  customNetworkConfigs?: NetworkConfigOverrides,
-  options: BroadcastOptions = {}
-): Promise<BroadcastResult> {
-  const { logger = DEFAULT_LOGGER, maxRetries = 3, retryDelay = 1000 } = options;
-
-  // 入力検証
-  if (!signedTransaction || typeof signedTransaction !== 'string') {
-    throw new BroadcastError('署名済みトランザクションが指定されていません');
-  }
-
-  // 設定取得とRPC検証
-  const networkConfig = getNetworkConfig(chainId, customNetworkConfigs);
-  validateRpcUrl(rpcUrl);
-
-  // viemクライアント作成
-  const client = createWalletClient({
-    chain: networkConfig.chain,
-    transport: http(rpcUrl, {
-      timeout: 30000,
-      retryCount: 3,
-      retryDelay: 1000,
-    }),
-  });
-
-  // ブロードキャスト実行
-  logger.info(`🌐 ${networkConfig.name} (${networkConfig.chain.id}) へブロードキャスト中...`);
+  customRpcUrl?: string
+): Promise<{ transactionHash: Hex; explorerUrl?: string }> {
+  // ドメイン層でのバリデーション
+  const validatedTransaction = validateSignedTransaction(signedTransaction);
+  const { networkConfig, rpcUrl } = getValidatedNetworkConfig(chainId, customRpcUrl);
 
   try {
-    const hash = await client.sendRawTransaction({
-      serializedTransaction: signedTransaction,
+    const publicClient = createPublicClient({
+      chain: networkConfig.chain,
+      transport: http(rpcUrl),
     });
 
-    logger.info(`✅ ブロードキャスト成功: ${hash}`);
+    const transactionHash = await publicClient.sendRawTransaction({
+      serializedTransaction: validatedTransaction,
+    });
 
-    return {
-      transactionHash: hash,
-      explorerUrl: generateExplorerUrl(hash, networkConfig.explorerBaseUrl),
-    };
+    return buildBroadcastResult(transactionHash, chainId);
   } catch (error: unknown) {
-    if (isKnownTransactionError(error)) {
-      const hash = await handleKnownTransactionError(
-        signedTransaction,
-        rpcUrl,
-        networkConfig.chain,
-        maxRetries,
-        retryDelay,
-        logger
-      );
-      return {
-        transactionHash: hash,
-        explorerUrl: generateExplorerUrl(hash, networkConfig.explorerBaseUrl),
-      };
+    if (isBroadcastError(error)) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new BroadcastError(`トランザクションのブロードキャストに失敗しました: ${errorMessage}`);
     }
 
-    const message = error instanceof Error ? error.message : String(error);
-    logger.error(`❌ ブロードキャストエラー: ${message}`);
-    throw new BroadcastError(`ブロードキャスト失敗: ${message}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new NetworkError(`ネットワーク通信エラー: ${errorMessage}`);
   }
 }
 
