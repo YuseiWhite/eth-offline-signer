@@ -1,0 +1,22 @@
+{
+  "validTransactionParams": {
+    "to": "0x742d35Cc6634C0532925a3b8D4C9db7C9C0C7A8A",
+    "value": "1000000000000000000",
+    "gasLimit": "21000",
+    "maxFeePerGas": "20000000000",
+    "maxPriorityFeePerGas": "1000000000",
+    "nonce": 0,
+    "chainId": 11155111
+  },
+  "validPrivateKey": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+  "networks": {
+    "sepolia": {
+      "chainId": 11155111,
+      "rpcUrl": "https://sepolia.infura.io/v3/test"
+    },
+    "anvil": {
+      "chainId": 31337,
+      "rpcUrl": "http://127.0.0.1:8545"
+    }
+  }
+}
