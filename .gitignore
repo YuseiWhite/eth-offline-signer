@@ -58,6 +58,12 @@ temp/
 test-keys/
 private-keys/
 
+# Environment-specific files
+local/
+
 # Cache directories
 .cache/
+.parcel-cache/ # stryker temp files
+.stryker-tmp
+
 .parcel-cache/ 
