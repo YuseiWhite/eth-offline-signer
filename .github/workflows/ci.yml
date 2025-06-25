@@ -21,7 +21,7 @@ jobs:
         run: pnpm run lint
 
       - name: Run TypeScript type check
-        run: pnpm run type-check
+        run: pnpm run typecheck
 
   test:
     name: Test Suite
@@ -40,7 +40,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - name: Run tests
-        run: pnpm run test
+        run: pnpm run test:run
 
       - name: Run test coverage
         if: matrix.os == 'ubuntu-latest' && matrix.node-version == '18'
