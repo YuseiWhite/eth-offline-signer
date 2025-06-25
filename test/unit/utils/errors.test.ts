@@ -3,7 +3,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   handleCliError,
   EthOfflineSignerError,
-  InvalidInputError,
   PrivateKeyError,
   FileAccessError,
   SigningError,
