@@ -30,13 +30,7 @@ export interface Logger {
  * デフォルトロガー実装
  * @description 環境に応じた適切なログ出力
  */
-let loggerInstance: Logger = {
-  info: (message: string) => defaultLogger.info(message),
-  warn: (message: string) => defaultLogger.warn(message),
-  error: (message: string) => defaultLogger.error(message),
-};
-
-export const logger: Logger = loggerInstance;
+export let loggerInstance: Logger = defaultLogger;
 
 /**
  * ロガーインスタンスの設定（テスト環境用）
@@ -204,6 +198,8 @@ async function handleTransactionReceipt(
 
     const receipt = await publicClient.waitForTransactionReceipt({
       hash: retryResult.transactionHash,
+      timeout: 600_000, // 10分のタイムアウト設定
+      retryCount: 60,
     });
 
     logTransactionSuccess(retryResult, receipt, logger);
@@ -224,8 +220,8 @@ async function handleTransactionReceipt(
  * @param rpcUrl ブロードキャスト先RPCエンドポイント
  * @param maxRetries 最大リトライ回数
  * @param logger ロガー
- * @returns ブロードキャスト結果（レシート情報を含む）
- * @description Nonceリトライとレシート取得を含む完全なブロードキャストフロー
+ * @returns ブロードキャスト結果（トランザクションハッシュのみ）
+ * @description Nonceリトライを含むブロードキャスト処理のみ
  */
 async function handleBroadcast(
   privateKey: `0x${string}`,
@@ -233,7 +229,9 @@ async function handleBroadcast(
   rpcUrl: string,
   maxRetries: number,
   logger: Logger
-): Promise<NonNullable<TransactionProcessorResult['broadcast']>> {
+): Promise<
+  NonceRetrySuccessResult | { success: false; error: Error; finalNonce: number; retryCount: number }
+> {
   logger.info('📡 トランザクションのブロードキャストを開始...');
 
   const executeTransaction = async (nonce: number) => {
@@ -249,17 +247,7 @@ async function handleBroadcast(
     logger,
   });
 
-  if (!retryResult.success) {
-    return {
-      broadcastCompleted: false,
-      status: 'FAILED',
-      finalNonce: retryResult.finalNonce,
-      retryCount: retryResult.retryCount,
-      error: retryResult.error.message,
-    };
-  }
-
-  return await handleTransactionReceipt(retryResult, txParams, rpcUrl, logger);
+  return retryResult;
 }
 
 /**
@@ -298,6 +286,7 @@ export async function processTransaction(
     return { signedTransaction };
   }
 
+  // 3. ブロードキャスト実行
   const broadcastResult = await handleBroadcast(
     privateKey as `0x${string}`,
     txParams,
@@ -306,8 +295,40 @@ export async function processTransaction(
     userLogger
   );
 
+  if (!broadcastResult.success) {
+    return {
+      signedTransaction,
+      broadcast: {
+        broadcastCompleted: false,
+        status: 'FAILED',
+        finalNonce: broadcastResult.finalNonce,
+        retryCount: broadcastResult.retryCount,
+        error: broadcastResult.error.message,
+      },
+    };
+  }
+
+  // 4. トランザクションレシート取得
+  const receiptResult = await handleTransactionReceipt(
+    broadcastResult,
+    txParams,
+    rpcUrl,
+    userLogger
+  );
+
   return {
     signedTransaction,
-    broadcast: broadcastResult,
+    broadcast: receiptResult,
   };
 }
+
+// test-only exports
+export {
+  logTransactionSuccess,
+  logTransactionError,
+  getChainConfig,
+  createSuccessBroadcastResult,
+  createErrorBroadcastResult,
+  handleTransactionReceipt,
+  handleBroadcast,
+};
