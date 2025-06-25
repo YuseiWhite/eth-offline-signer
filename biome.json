@@ -201,7 +201,15 @@
   },
   "files": {
     "include": ["src/**/*.ts", "test/**/*.ts", "*.ts", "*.js", "*.json"],
-    "ignore": ["node_modules/**", "dist/**", "bin/**", "coverage/**", ".git/**", "pnpm-lock.yaml"]
+    "ignore": [
+      "node_modules/**",
+      "dist/**",
+      "bin/**",
+      "coverage/**",
+      ".git/**",
+      "pnpm-lock.yaml",
+      ".stryker-tmp/**"
+    ]
   },
   "overrides": [
     {
@@ -210,6 +218,23 @@
         "rules": {
           "style": {
             "noDefaultExport": "off"
+          }
+        }
+      }
+    },
+    {
+      "include": ["test/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noRedeclare": "off",
+            "noExplicitAny": "off"
+          },
+          "style": {
+            "noNonNullAssertion": "off"
+          },
+          "correctness": {
+            "noUnusedVariables": "off"
           }
         }
       }
