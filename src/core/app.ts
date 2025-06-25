@@ -9,7 +9,11 @@ import { processTransaction, DEFAULT_MAX_RETRIES } from './transactionProcessor'
 import { getDisplayNetworkInfo } from './networkConfig';
 
 // typesへの依存
-import { validateEIP1559TxParams, validateCliOptions, validateTransactionProcessorOptions } from '../types/schema';
+import {
+  validateEIP1559TxParams,
+  validateCliOptions,
+  validateTransactionProcessorOptions,
+} from '../types/schema';
 
 // utilsへの依存 (core -> utils は許可された依存関係)
 import { InvalidInputError } from '../utils/errors';
