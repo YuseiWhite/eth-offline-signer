@@ -37,7 +37,7 @@ export const tsupConfig = defineConfig([
   },
   // CLI build
   {
-    entry: { cli: 'src/cli/index.ts' },
+    entry: { cli: 'src/cli/cli.ts' },
     outDir: 'dist',
     format: ['cjs'],
     outExtension: () => ({ js: '.cjs' }),
