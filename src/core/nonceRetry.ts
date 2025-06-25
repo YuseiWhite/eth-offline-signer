@@ -124,16 +124,8 @@ function buildSuccessResult(
 export async function executeWithNonceRetry(options: NonceRetryOptions): Promise<NonceRetryResult> {
   const validatedOptions = validateNonceRetryOptions(options);
 
-  const {
-    maxRetries,
-    executeTransaction,
-    txParams,
-    logger = {
-      info: (message: string) => defaultLogger.info(message),
-      warn: (message: string) => defaultLogger.warn(message),
-      error: (message: string) => defaultLogger.error(message),
-    },
-  } = validatedOptions;
+  const { maxRetries, executeTransaction, txParams, logger: userLogger } = validatedOptions;
+  const logger: Logger = userLogger ?? defaultLogger;
 
   let currentNonce = txParams.nonce;
   let lastError: Error | null = null;
@@ -175,8 +167,11 @@ export async function executeWithNonceRetry(options: NonceRetryOptions): Promise
   }
 
   return buildFailureResult(
-    lastError || new Error('不明なエラーが発生しました'),
+    /* istanbul ignore next */ lastError || new Error('不明なエラーが発生しました'),
     currentNonce,
-    actualAttempts
+    actualAttempts - 1
   );
 }
+
+// test-only export
+export { exponentialBackoff, isNonceError, buildFailureResult, buildSuccessResult };

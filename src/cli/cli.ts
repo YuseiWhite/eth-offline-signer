@@ -55,14 +55,15 @@ function handleCliError(error: Error): void {
 
 /**
  * パッケージバージョンの安全な取得
+ * @param packagePathsToTry テスト用などに指定可能な package.json のパス配列
  * @returns パッケージバージョン（取得失敗時はデフォルト値）
  * @description 動的に取得
  */
-function getPackageVersion(): string {
+function getPackageVersion(packagePathsToTry?: string[]): string {
   const defaultVersion = '1.1.0';
 
   // 複数のパス候補を試行
-  const packagePaths = [
+  const packagePaths = packagePathsToTry ?? [
     path.join(__dirname, '../../package.json'),
     path.join(process.cwd(), 'package.json'),
     path.resolve(__dirname, '../../../package.json'),
@@ -72,7 +73,7 @@ function getPackageVersion(): string {
     try {
       const packageJsonContent = readFileSync(packageJsonPath, 'utf-8');
       const parsedPackageJson = JSON.parse(packageJsonContent);
-      
+
       if (parsedPackageJson && typeof parsedPackageJson.version === 'string') {
         return parsedPackageJson.version;
       }
@@ -135,4 +136,10 @@ program.exitOverride((err) => {
   process.exit(1);
 });
 
-program.parse();
+// only execute parsing when run as a script
+if (require.main === module) {
+  program.parse();
+}
+
+// export for testing
+export { toError, handleCliError, getPackageVersion, program };

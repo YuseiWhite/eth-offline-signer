@@ -40,7 +40,7 @@ export const PrivateKeySchema = z.string().regex(/^0x[0-9a-fA-F]{64}$/, {
 export const RawPrivateKeySchema = z
   .string()
   .min(1, '秘密鍵が空です')
-  .regex(/^(0x)?[0-9a-fA-F]{64}$/, '秘密鍵は64文字の16進文字列である必要があります');
+  .regex(/^(0x)?[0-9a-fA-F]{64}$/, '秘密鍵は64文字の16進数文字列である必要があります');
 
 /**
  * ファイルパスの検証スキーマ
@@ -71,29 +71,10 @@ export const PrivateKeyFormatSchema = z
 export const RpcUrlSchema = z
   .string()
   .min(1, 'RPC URLが指定されていません')
-  .url('不正なRPC URL形式です')
-  .refine(
-    (url) => {
-      try {
-        const parsedUrl = new URL(url);
-        return ['http:', 'https:'].includes(parsedUrl.protocol);
-      } catch {
-        return false;
-      }
-    },
-    { message: 'HTTP/HTTPSプロトコルのみサポートされています' }
-  )
-  .refine(
-    (url) => {
-      try {
-        const parsedUrl = new URL(url);
-        return parsedUrl.hostname && parsedUrl.hostname.length > 0;
-      } catch {
-        return false;
-      }
-    },
-    { message: 'RPC URLのホスト名が無効です' }
-  );
+  .refine((val) => /^(https?):\/\/.+$/.test(val), { message: '不正なRPC URL形式です' })
+  .refine((val) => !/^(https?):\/\/\//.test(val) && !/^(https?):\/\/:/.test(val), {
+    message: 'RPC URLのホスト名が無効です',
+  });
 
 /**
  * チェーンIDの検証スキーマ
@@ -295,17 +276,16 @@ const SignAndBroadcastSchema = z.object({
 
 const SignOnlySchema = z.object({
   broadcast: z.literal(false).optional(),
-  rpcUrl: z.undefined({
-    errorMap: () => ({ message: 'broadcastがfalseの場合、rpcUrlは指定できません' }),
-  }).optional(),
+  rpcUrl: z
+    .undefined({
+      errorMap: () => ({ message: 'broadcastがfalseの場合、rpcUrlは指定できません' }),
+    })
+    .optional(),
 });
 
 export const TransactionProcessorOptionsSchema = z.intersection(
   TransactionProcessorBaseSchema,
-  z.discriminatedUnion('broadcast', [
-    SignAndBroadcastSchema,
-    SignOnlySchema,
-  ])
+  z.discriminatedUnion('broadcast', [SignAndBroadcastSchema, SignOnlySchema])
 );
 
 export type TransactionProcessorOptions = z.input<typeof TransactionProcessorOptionsSchema>;
@@ -390,6 +370,7 @@ const NONCE_ERROR_PATTERNS = [
   'nonce.*expected',
   'replacement transaction underpriced',
   'transaction already known',
+  'already known',
 ] as const;
 
 /**

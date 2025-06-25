@@ -156,3 +156,4 @@ export async function broadcastTransaction(
 }
 
 export { getAllSupportedNetworks } from './networkConfig';
+export { generateExplorerUrl };

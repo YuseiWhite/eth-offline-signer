@@ -1,7 +1,7 @@
-import { readFileSync } from 'node:fs';
-import { access, constants } from 'node:fs/promises';
+import { stat, readFile } from 'node:fs/promises';
 import { FilePathSchema, PrivateKeyFormatSchema, RawPrivateKeySchema } from '../types/schema';
 import { FileAccessError, PrivateKeyError } from '../utils/errors';
+import { ZodError } from 'zod';
 
 /**
  * 秘密鍵ハンドルの型定義
@@ -20,15 +20,16 @@ export interface PrivateKeyHandle {
  */
 async function validateFileAccess(filePath: string): Promise<void> {
   try {
-    await access(filePath, constants.F_OK | constants.R_OK);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+    await stat(filePath);
+  } catch (error: unknown) {
+    const err = error as { code?: string; message?: string };
+    if (err.code === 'ENOENT') {
       throw new FileAccessError(`秘密鍵ファイルが見つかりません: ${filePath}`);
     }
-    if ((error as NodeJS.ErrnoException).code === 'EACCES') {
+    if (err.code === 'EACCES') {
       throw new FileAccessError(`秘密鍵ファイルの読み取り権限がありません: ${filePath}`);
     }
-    throw new FileAccessError(`ファイルアクセスエラー: ${(error as Error).message}`);
+    throw new FileAccessError(`ファイルアクセスエラー: ${err.message || String(err)}`);
   }
 }
 
@@ -59,83 +60,79 @@ function normalizePrivateKey(rawKey: string): `0x${string}` {
  * @description ファイルI/Oとバリデーションを統合したビジネスロジック
  */
 async function loadPrivateKeyFromFile(keyFile: string): Promise<PrivateKeyHandle> {
-  // ドメイン層でのファイルパスバリデーション
-  const validatedPath = FilePathSchema.parse(keyFile);
-
-  // ファイルアクセス権限の検証
-  await validateFileAccess(validatedPath);
-
+  // ファイルパス必須チェック（空文字、null、undefined含む）
+  if (keyFile === undefined || keyFile === null || keyFile.trim() === '') {
+    throw new PrivateKeyError('秘密鍵ファイルのパスが指定されていません。');
+  }
+  // ファイルパスバリデーション
+  let validatedPath: string;
   try {
-    const rawContent = readFileSync(validatedPath, 'utf-8');
-    const privateKey = normalizePrivateKey(rawContent);
-
-    return { privateKey };
-  } catch (error) {
-    if (error instanceof Error && error.name === 'ZodError') {
-      throw new PrivateKeyError(`秘密鍵の形式が無効です: ${error.message}`);
+    validatedPath = FilePathSchema.parse(keyFile);
+  } catch (error: unknown) {
+    // 拡張子不一致などのZodErrorをPrivateKeyErrorとして扱う
+    if (error instanceof ZodError) {
+      const issue = error.issues?.[0]?.message || '無効なファイルパス形式です';
+      throw new PrivateKeyError(issue);
+    }
+    throw error;
+  }
+  let rawContent: string;
+  try {
+    await validateFileAccess(validatedPath);
+    rawContent = await readFile(validatedPath, 'utf-8');
+  } catch (error: unknown) {
+    const err = error as { code?: string; message?: string };
+    if (err.code === 'ENOENT') {
+      throw new FileAccessError(`秘密鍵ファイルが見つかりません: ${validatedPath}`);
     }
     throw new FileAccessError(
-      `秘密鍵ファイルの読み込みに失敗しました: ${(error as Error).message}`
+      `秘密鍵ファイルの読み込みに失敗しました: ${err.message || String(err)}`
     );
   }
-}
-
-/**
- * 環境変数からの秘密鍵読み込み
- * @param envVarName 環境変数名
- * @returns 秘密鍵ハンドル
- * @throws PrivateKeyError 環境変数が存在しない、または無効な形式の場合
- * @description 環境変数の安全な取得とバリデーション
- */
-function loadPrivateKeyFromEnv(envVarName: string): PrivateKeyHandle {
-  const rawKey = process.env[envVarName];
-
-  if (!rawKey) {
-    throw new PrivateKeyError(`環境変数 ${envVarName} が設定されていません`);
-  }
-
+  // 秘密鍵の正規化とバリデーション
+  let normalizedKey: `0x${string}`;
   try {
-    const privateKey = normalizePrivateKey(rawKey);
-    return { privateKey };
-  } catch (error) {
-    throw new PrivateKeyError(
-      `環境変数 ${envVarName} の秘密鍵形式が無効です: ${(error as Error).message}`
-    );
+    normalizedKey = normalizePrivateKey(rawContent);
+  } catch (error: unknown) {
+    if (error instanceof ZodError) {
+      const issue = error.issues?.[0]?.message || '';
+      if (issue === '秘密鍵が空です') {
+        throw new PrivateKeyError(`${issue}。`);
+      }
+      throw new PrivateKeyError(`無効な秘密鍵形式です。${issue}`);
+    }
+    throw new PrivateKeyError(`秘密鍵の形式が無効です。${(error as Error).message}`);
   }
+  // クリーンアップ機能の提供
+  let cleaned = false;
+  const handle: PrivateKeyHandle = {
+    get privateKey() {
+      if (cleaned) {
+        throw new PrivateKeyError('秘密鍵が既にクリーンアップされています。');
+      }
+      return normalizedKey;
+    },
+    cleanup() {
+      cleaned = true;
+    },
+  };
+  return handle;
 }
 
 /**
  * 秘密鍵の安全な読み込み
- * @param keyFile 秘密鍵ファイルのパス（オプション）
- * @param privateKeyEnv 秘密鍵環境変数名（オプション、デフォルト: 'PRIVATE_KEY'）
+ * @param keyFile 秘密鍵ファイルのパス
  * @returns 秘密鍵ハンドル
- * @throws PrivateKeyError どちらの方法でも秘密鍵を取得できない場合
+ * @throws PrivateKeyError ファイルパスが指定されていない、または形式エラーの場合
  * @throws FileAccessError ファイルアクセスエラーの場合
  * @description 複数の秘密鍵取得方法を統合したワークフロー制御
  */
-export async function loadPrivateKey(
-  keyFile?: string,
-  privateKeyEnv = 'PRIVATE_KEY'
-): Promise<PrivateKeyHandle> {
+export async function loadPrivateKey(keyFile?: string): Promise<PrivateKeyHandle> {
+  // ファイルパスの必須チェック（空文字、null、undefined含む）
+  if (keyFile === undefined || keyFile === null || keyFile.trim() === '') {
+    throw new PrivateKeyError('秘密鍵ファイルのパスが指定されていません。');
+  }
   // 1. ファイルからの読み込み（優先）
-  if (keyFile) {
-    const handle = await loadPrivateKeyFromFile(keyFile);
-    return handle;
-  }
-
-  // 2. 環境変数からの読み込み（フォールバック）
-  try {
-    const handle = loadPrivateKeyFromEnv(privateKeyEnv);
-    return handle;
-  } catch (error) {
-    // 両方の方法で失敗した場合の包括的エラー
-    if (!keyFile) {
-      throw new PrivateKeyError(
-        `秘密鍵を取得できませんでした。--key-fileオプションでファイルを指定するか、環境変数 ${privateKeyEnv} を設定してください。`
-      );
-    }
-
-    // keyFileが指定されていた場合は、ファイル読み込みエラーが既に投げられているはず
-    throw error;
-  }
+  const handle = await loadPrivateKeyFromFile(keyFile);
+  return handle;
 }
