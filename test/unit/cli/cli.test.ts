@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import path from 'node:path';
 
 // テスト中のCLI実行を防ぐためのモック依存関係
-vi.mock('../../../src/core/app', () => ({
+vi.mock('../../../src/core/app.js', () => ({
   runCli: vi.fn(),
 }));
 
@@ -37,20 +37,20 @@ describe('CLI Module', () => {
 
   describe('toError function', () => {
     it('should convert Error to Error', async () => {
-      const { toError } = await import('../../../src/cli/cli');
+      const { toError } = await import('../../../src/cli/cli.js');
       const error = new Error('test error');
       expect(toError(error)).toBe(error);
     });
 
     it('should convert string to Error', async () => {
-      const { toError } = await import('../../../src/cli/cli');
+      const { toError } = await import('../../../src/cli/cli.js');
       const result = toError('test string');
       expect(result).toBeInstanceOf(Error);
       expect(result.message).toBe('test string');
     });
 
     it('should convert unknown to Error', async () => {
-      const { toError } = await import('../../../src/cli/cli');
+      const { toError } = await import('../../../src/cli/cli.js');
       const result = toError({ custom: 'object' });
       expect(result).toBeInstanceOf(Error);
       expect(result.message).toBe('[object Object]');
@@ -59,7 +59,7 @@ describe('CLI Module', () => {
 
   describe('handleCliError function', () => {
     it('should handle InvalidInputError', async () => {
-      const { handleCliError } = await import('../../../src/cli/cli');
+      const { handleCliError } = await import('../../../src/cli/cli.js');
       const error = new Error('invalid input');
       error.name = 'InvalidInputError';
 
@@ -69,7 +69,7 @@ describe('CLI Module', () => {
     });
 
     it('should handle NetworkError', async () => {
-      const { handleCliError } = await import('../../../src/cli/cli');
+      const { handleCliError } = await import('../../../src/cli/cli.js');
       const error = new Error('network error');
       error.name = 'NetworkError';
 
@@ -79,7 +79,7 @@ describe('CLI Module', () => {
     });
 
     it('should handle PrivateKeyError', async () => {
-      const { handleCliError } = await import('../../../src/cli/cli');
+      const { handleCliError } = await import('../../../src/cli/cli.js');
       const error = new Error('private key error');
       error.name = 'PrivateKeyError';
 
@@ -89,7 +89,7 @@ describe('CLI Module', () => {
     });
 
     it('should handle FileAccessError', async () => {
-      const { handleCliError } = await import('../../../src/cli/cli');
+      const { handleCliError } = await import('../../../src/cli/cli.js');
       const error = new Error('file access error');
       error.name = 'FileAccessError';
 
@@ -99,7 +99,7 @@ describe('CLI Module', () => {
     });
 
     it('should handle BroadcastError', async () => {
-      const { handleCliError } = await import('../../../src/cli/cli');
+      const { handleCliError } = await import('../../../src/cli/cli.js');
       const error = new Error('broadcast error');
       error.name = 'BroadcastError';
 
@@ -109,7 +109,7 @@ describe('CLI Module', () => {
     });
 
     it('should handle general Error', async () => {
-      const { handleCliError } = await import('../../../src/cli/cli');
+      const { handleCliError } = await import('../../../src/cli/cli.js');
       const error = new Error('general error');
 
       handleCliError(error);
@@ -122,7 +122,7 @@ describe('CLI Module', () => {
 
   describe('getPackageVersion function', () => {
     it('should return default version when package.json not found', async () => {
-      const { getPackageVersion } = await import('../../../src/cli/cli');
+      const { getPackageVersion } = await import('../../../src/cli/cli.js');
       const result = getPackageVersion();
 
       // バージョンを返すか、デフォルトを1.1.0にする
@@ -131,7 +131,7 @@ describe('CLI Module', () => {
     });
 
     it('should warn and use default version when package.json not found at any path', async () => {
-      const { getPackageVersion } = await import('../../../src/cli/cli');
+      const { getPackageVersion } = await import('../../../src/cli/cli.js');
       const version = getPackageVersion(['/no/file1.json', '/no/file2.json']);
       expect(console.warn).toHaveBeenCalledWith(
         expect.stringContaining('デフォルトバージョン 1.1.0 を使用します')
@@ -140,7 +140,7 @@ describe('CLI Module', () => {
     });
 
     it('should return parsed version when package.json content has version', async () => {
-      const { getPackageVersion } = await import('../../../src/cli/cli');
+      const { getPackageVersion } = await import('../../../src/cli/cli.js');
       const fixturePath = path.join(process.cwd(), 'test/fixtures/fake-package.json');
       const version = getPackageVersion([fixturePath]);
       expect(version).toBe('9.9.9');
@@ -150,8 +150,8 @@ describe('CLI Module', () => {
 
   describe('CLI command parsing', () => {
     it('should execute runCli with correct options for sign command', async () => {
-      const { program } = await import('../../../src/cli/cli');
-      const { runCli } = await import('../../../src/core/app');
+      const { program } = await import('../../../src/cli/cli.js');
+      const { runCli } = await import('../../../src/core/app.js');
       vi.mocked(runCli).mockResolvedValueOnce(undefined);
 
       await program.parseAsync([
@@ -169,8 +169,8 @@ describe('CLI Module', () => {
     });
 
     it('should handle InvalidInputError and exit with code 1', async () => {
-      const { program } = await import('../../../src/cli/cli');
-      const { runCli } = await import('../../../src/core/app');
+      const { program } = await import('../../../src/cli/cli.js');
+      const { runCli } = await import('../../../src/core/app.js');
       const error = new Error('missing params');
       error.name = 'InvalidInputError';
       vi.mocked(runCli).mockRejectedValueOnce(error);
@@ -182,19 +182,19 @@ describe('CLI Module', () => {
     });
 
     it('should display help and exit with code 0', async () => {
-      const { program } = await import('../../../src/cli/cli');
+      const { program } = await import('../../../src/cli/cli.js');
       await program.parseAsync(['node', 'test', '--help']);
       expect(process.exit).toHaveBeenCalledWith(0);
     });
 
     it('should display version and exit with code 0', async () => {
-      const { program } = await import('../../../src/cli/cli');
+      const { program } = await import('../../../src/cli/cli.js');
       await program.parseAsync(['node', 'test', '--version']);
       expect(process.exit).toHaveBeenCalledWith(0);
     });
 
     it('should handle unknown command and exit with code 1', async () => {
-      const { program } = await import('../../../src/cli/cli');
+      const { program } = await import('../../../src/cli/cli.js');
 
       await program.parseAsync(['node', 'test', 'foobar']);
 
@@ -203,7 +203,7 @@ describe('CLI Module', () => {
     });
 
     it('should handle unknown option and exit with code 1', async () => {
-      const { program } = await import('../../../src/cli/cli');
+      const { program } = await import('../../../src/cli/cli.js');
 
       await program.parseAsync([
         'node',
@@ -220,8 +220,8 @@ describe('CLI Module', () => {
     });
 
     it('should handle PrivateKeyError and exit with code 1', async () => {
-      const { program } = await import('../../../src/cli/cli');
-      const { runCli } = await import('../../../src/core/app');
+      const { program } = await import('../../../src/cli/cli.js');
+      const { runCli } = await import('../../../src/core/app.js');
       const error = new Error('private key failure');
       error.name = 'PrivateKeyError';
       vi.mocked(runCli).mockRejectedValueOnce(error);
@@ -241,8 +241,8 @@ describe('CLI Module', () => {
     });
 
     it('should handle FileAccessError and exit with code 1', async () => {
-      const { program } = await import('../../../src/cli/cli');
-      const { runCli } = await import('../../../src/core/app');
+      const { program } = await import('../../../src/cli/cli.js');
+      const { runCli } = await import('../../../src/core/app.js');
       const error = new Error('file access failure');
       error.name = 'FileAccessError';
       vi.mocked(runCli).mockRejectedValueOnce(error);
@@ -262,8 +262,8 @@ describe('CLI Module', () => {
     });
 
     it('should handle NetworkError and exit with code 1', async () => {
-      const { program } = await import('../../../src/cli/cli');
-      const { runCli } = await import('../../../src/core/app');
+      const { program } = await import('../../../src/cli/cli.js');
+      const { runCli } = await import('../../../src/core/app.js');
       const error = new Error('network failure');
       error.name = 'NetworkError';
       vi.mocked(runCli).mockRejectedValueOnce(error);
@@ -283,8 +283,8 @@ describe('CLI Module', () => {
     });
 
     it('should handle BroadcastError and exit with code 1', async () => {
-      const { program } = await import('../../../src/cli/cli');
-      const { runCli } = await import('../../../src/core/app');
+      const { program } = await import('../../../src/cli/cli.js');
+      const { runCli } = await import('../../../src/core/app.js');
       const error = new Error('broadcast failure');
       error.name = 'BroadcastError';
       vi.mocked(runCli).mockRejectedValueOnce(error);
