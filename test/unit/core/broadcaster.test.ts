@@ -52,7 +52,7 @@ vi.mock('../../../src/core/networkConfig', () => ({
 }));
 
 // 型インポート
-import { createWalletClient, createPublicClient, http, keccak256 } from 'viem';
+import { createPublicClient, http } from 'viem';
 import { getNetworkConfig } from '../../../src/core/networkConfig';
 
 // モック関数の型定義
@@ -573,7 +573,7 @@ describe('broadcaster internal tests', () => {
 
   describe('validateSignedTransaction edge cases', () => {
     it('should throw BroadcastError for non-hex string', async () => {
-      const { getNetworkConfig } = await import('../../../src/core/networkConfig');
+      const { getNetworkConfig } = await import('../../../src/core/networkConfig.js');
       vi.mocked(getNetworkConfig).mockReturnValue({
         chain: { id: 1, rpcUrls: { default: { http: ['http://localhost'] } } },
         explorerBaseUrl: 'https://etherscan.io',
@@ -583,7 +583,7 @@ describe('broadcaster internal tests', () => {
     });
 
     it('should throw BroadcastError for malformed hex', async () => {
-      const { getNetworkConfig } = await import('../../../src/core/networkConfig');
+      const { getNetworkConfig } = await import('../../../src/core/networkConfig.js');
       vi.mocked(getNetworkConfig).mockReturnValue({
         chain: { id: 1, rpcUrls: { default: { http: ['http://localhost'] } } },
         explorerBaseUrl: 'https://etherscan.io',
@@ -595,7 +595,7 @@ describe('broadcaster internal tests', () => {
 
   describe('getValidatedNetworkConfig edge cases', () => {
     it('should throw NetworkError when getNetworkConfig throws', async () => {
-      const { getNetworkConfig } = await import('../../../src/core/networkConfig');
+      const { getNetworkConfig } = await import('../../../src/core/networkConfig.js');
       vi.mocked(getNetworkConfig).mockImplementation(() => {
         throw new Error('Network not found');
       });
@@ -606,7 +606,7 @@ describe('broadcaster internal tests', () => {
     });
 
     it('should throw NetworkError when RPC URL validation fails', async () => {
-      const { getNetworkConfig } = await import('../../../src/core/networkConfig');
+      const { getNetworkConfig } = await import('../../../src/core/networkConfig.js');
       vi.mocked(getNetworkConfig).mockReturnValue({
         chain: { id: 1, rpcUrls: { default: { http: ['invalid-url'] } } },
         explorerBaseUrl: 'https://etherscan.io',
@@ -620,7 +620,7 @@ describe('broadcaster internal tests', () => {
 
   describe('isBroadcastError pattern matching', () => {
     it('should detect transaction failed error', async () => {
-      const { getNetworkConfig } = await import('../../../src/core/networkConfig');
+      const { getNetworkConfig } = await import('../../../src/core/networkConfig.js');
       const { createPublicClient } = await import('viem');
 
       vi.mocked(getNetworkConfig).mockReturnValue({
@@ -642,7 +642,7 @@ describe('broadcaster internal tests', () => {
     });
 
     it('should detect insufficient funds error', async () => {
-      const { getNetworkConfig } = await import('../../../src/core/networkConfig');
+      const { getNetworkConfig } = await import('../../../src/core/networkConfig.js');
       const { createPublicClient } = await import('viem');
 
       vi.mocked(getNetworkConfig).mockReturnValue({
@@ -663,7 +663,7 @@ describe('broadcaster internal tests', () => {
     });
 
     it('should treat non-broadcast errors as NetworkError', async () => {
-      const { getNetworkConfig } = await import('../../../src/core/networkConfig');
+      const { getNetworkConfig } = await import('../../../src/core/networkConfig.js');
       const { createPublicClient } = await import('viem');
 
       vi.mocked(getNetworkConfig).mockReturnValue({
@@ -684,7 +684,7 @@ describe('broadcaster internal tests', () => {
     });
 
     it('should handle non-object errors', async () => {
-      const { getNetworkConfig } = await import('../../../src/core/networkConfig');
+      const { getNetworkConfig } = await import('../../../src/core/networkConfig.js');
       const { createPublicClient } = await import('viem');
 
       vi.mocked(getNetworkConfig).mockReturnValue({
@@ -705,7 +705,7 @@ describe('broadcaster internal tests', () => {
 
   describe('generateExplorerUrl edge cases', () => {
     it('should return undefined when getNetworkConfig throws', async () => {
-      const { getNetworkConfig } = await import('../../../src/core/networkConfig');
+      const { getNetworkConfig } = await import('../../../src/core/networkConfig.js');
       const { createPublicClient } = await import('viem');
 
       // First call for validation succeeds
@@ -730,7 +730,7 @@ describe('broadcaster internal tests', () => {
     });
 
     it('should return undefined when explorerBaseUrl is undefined', async () => {
-      const { getNetworkConfig } = await import('../../../src/core/networkConfig');
+      const { getNetworkConfig } = await import('../../../src/core/networkConfig.js');
       const { createPublicClient } = await import('viem');
 
       vi.mocked(getNetworkConfig).mockReturnValue({
@@ -753,23 +753,23 @@ describe('broadcaster internal tests', () => {
 // add direct tests for generateExplorerUrl
 describe('generateExplorerUrl function', () => {
   it('should return undefined when getNetworkConfig throws', async () => {
-    const { getNetworkConfig } = await import('../../../src/core/networkConfig');
+    const { getNetworkConfig } = await import('../../../src/core/networkConfig.js');
     vi.mocked(getNetworkConfig).mockImplementation(() => {
       throw new Error('fail');
     });
-    const { generateExplorerUrl } = await import('../../../src/core/broadcaster');
+    const { generateExplorerUrl } = await import('../../../src/core/broadcaster.js');
 
     const url = generateExplorerUrl('0x123', 999);
     expect(url).toBeUndefined();
   });
 
   it('should return undefined when explorerBaseUrl is empty string', async () => {
-    const { getNetworkConfig } = await import('../../../src/core/networkConfig');
+    const { getNetworkConfig } = await import('../../../src/core/networkConfig.js');
     vi.mocked(getNetworkConfig).mockReturnValue({
       explorerBaseUrl: '',
       chain: { rpcUrls: { default: { http: [''] } } },
     } as any);
-    const { generateExplorerUrl } = await import('../../../src/core/broadcaster');
+    const { generateExplorerUrl } = await import('../../../src/core/broadcaster.js');
 
     const url = generateExplorerUrl('0xabc', 11155111);
     expect(url).toBeUndefined();

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
 import { InvalidInputError } from '../../../src/utils/errors';
 
 const mockLoadPrivateKey = vi.fn();
@@ -31,9 +31,12 @@ vi.mock('node:fs', () => ({
   readFileSync: mockReadFileSync,
 }));
 
-const { runCli } = await import('../../../src/core/app');
+let runCli: typeof import('../../../src/core/app.js').runCli;
 
 describe('app.ts', () => {
+  beforeAll(async () => {
+    ({ runCli } = await import('../../../src/core/app.js'));
+  });
   let mockConsoleInfo: ReturnType<typeof vi.fn>;
   let originalConsoleInfo: typeof console.info;
 

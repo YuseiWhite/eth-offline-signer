@@ -96,7 +96,7 @@ describe('Logger Production Environment Tests', () => {
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       // 動的インポートでロガーを取得
-      const { logger } = await import('../../../src/utils/logger');
+      const { logger } = await import('../../../src/utils/logger.js');
 
       // ロガーメソッドを実行
       logger.info('テスト情報');
@@ -128,7 +128,7 @@ describe('Logger Production Environment Tests', () => {
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       // 動的インポートでロガーを取得
-      const { logger } = await import('../../../src/utils/logger');
+      const { logger } = await import('../../../src/utils/logger.js');
 
       // ロガーメソッドを実行
       logger.info('開発情報');
@@ -158,7 +158,7 @@ describe('Logger Production Environment Tests', () => {
       const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
 
       // 動的インポートでロガーを取得
-      const { logger } = await import('../../../src/utils/logger');
+      const { logger } = await import('../../../src/utils/logger.js');
 
       // ロガーメソッドを実行
       logger.info('デフォルト情報');
@@ -178,7 +178,7 @@ describe('Logger Production Environment Tests', () => {
       vi.resetModules();
 
       // 動的インポートでロガーを取得
-      const { logger } = await import('../../../src/utils/logger');
+      const { logger } = await import('../../../src/utils/logger.js');
 
       // コンソールメソッドをスパイ
       const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
@@ -196,7 +196,7 @@ describe('Logger Production Environment Tests', () => {
 
   describe('createTestLogger関数', () => {
     it('createTestLogger関数が正常に動作する', async () => {
-      const { createTestLogger } = await import('../../../src/utils/logger');
+      const { createTestLogger } = await import('../../../src/utils/logger.js');
 
       const testLogger = createTestLogger();
 

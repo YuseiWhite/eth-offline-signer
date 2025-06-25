@@ -10,7 +10,7 @@ import {
   NumericStringSchema,
   AccessListItemSchema,
   EIP1559TxParamsSchema,
-  type EIP1559TxParams,
+
   TransactionHashSchema,
   RawPrivateKeySchema,
   FilePathSchema,
@@ -281,7 +281,7 @@ describe('Schema Validation', () => {
 });
 
 // internal schema tests merged from schema.internal.test.ts
-import { z } from 'zod';
+
 import {
   PrivateKeySchema,
   CliOptionsSchema,
@@ -671,7 +671,7 @@ describe('Additional Schema Boundary and Negative Tests', () => {
       const result = RawPrivateKeySchema.safeParse(key);
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.errors[0].message).toContain('秘密鍵が空です');
+        expect(result.error.errors[0]!.message).toContain('秘密鍵が空です');
       }
     });
     it('should reject wrong length', () => {
@@ -720,7 +720,7 @@ describe('Additional Schema Boundary and Negative Tests', () => {
       const result = RpcUrlSchema.safeParse('http:///path');
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.errors[0].message).toBe('RPC URLのホスト名が無効です');
+        expect(result.error.errors[0]!.message).toBe('RPC URLのホスト名が無効です');
       }
     });
   });
@@ -753,7 +753,7 @@ describe('Additional Schema Boundary and Negative Tests', () => {
       const result = NativeCurrencySchema.safeParse({ name: 'Token', symbol: 'TKN', decimals: -1 });
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.errors[0].message).toBe('小数点以下桁数は0以上である必要があります');
+        expect(result.error.errors[0]!.message).toBe('小数点以下桁数は0以上である必要があります');
       }
     });
     it('should reject non-integer decimals', () => {
@@ -871,7 +871,7 @@ describe('Internal Schema Completeness Tests', () => {
       const result = ChainConfigSchema.safeParse(cfg);
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.errors[0].message).toBe('チェーン名が必要です');
+        expect(result.error.errors[0]!.message).toBe('チェーン名が必要です');
       }
     });
   });
@@ -908,7 +908,7 @@ describe('Internal Schema Completeness Tests', () => {
       const result = NetworkConfigSchema.safeParse(net);
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.errors[0].message).toBe('explorerBaseUrlが必要です');
+        expect(result.error.errors[0]!.message).toBe('explorerBaseUrlが必要です');
       }
     });
     it('should reject missing name with correct error message', () => {
@@ -925,7 +925,7 @@ describe('Internal Schema Completeness Tests', () => {
       const result = NetworkConfigSchema.safeParse(net);
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.errors[0].message).toBe('nameが必要です');
+        expect(result.error.errors[0]!.message).toBe('nameが必要です');
       }
     });
   });
@@ -937,19 +937,21 @@ describe('Additional Negative Tests for Schema', () => {
       const result = ChainIdSchema.safeParse(1.5);
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.errors[0].message).toBe('チェーンIDは整数である必要があります');
+        expect(result.error.errors[0]!.message).toBe('チェーンIDは整数である必要があります');
       }
     });
     it('should reject non-positive chainId', () => {
       const resultZero = ChainIdSchema.safeParse(0);
       expect(resultZero.success).toBe(false);
       if (!resultZero.success) {
-        expect(resultZero.error.errors[0].message).toBe('チェーンIDは正の整数である必要があります');
+        expect(resultZero.error.errors[0]!.message).toBe('チェーンIDは正の整数である必要があります');
       }
       const resultNegative = ChainIdSchema.safeParse(-5);
       expect(resultNegative.success).toBe(false);
       if (!resultNegative.success) {
-        expect(resultNegative.error.errors[0].message).toBe('チェーンIDは正の整数である必要があります');
+        expect(resultNegative.error.errors[0]!.message).toBe(
+          'チェーンIDは正の整数である必要があります'
+        );
       }
     });
   });
@@ -959,21 +961,21 @@ describe('Additional Negative Tests for Schema', () => {
       const result = NativeCurrencySchema.safeParse({ name: '', symbol: 'SYM', decimals: 0 });
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.errors[0].message).toBe('通貨名が必要です');
+        expect(result.error.errors[0]!.message).toBe('通貨名が必要です');
       }
     });
     it('should reject empty symbol', () => {
       const result = NativeCurrencySchema.safeParse({ name: 'Token', symbol: '', decimals: 0 });
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.errors[0].message).toBe('通貨シンボルが必要です');
+        expect(result.error.errors[0]!.message).toBe('通貨シンボルが必要です');
       }
     });
     it('should reject negative decimals', () => {
       const result = NativeCurrencySchema.safeParse({ name: 'Token', symbol: 'TKN', decimals: -1 });
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.errors[0].message).toBe('小数点以下桁数は0以上である必要があります');
+        expect(result.error.errors[0]!.message).toBe('小数点以下桁数は0以上である必要があります');
       }
     });
   });
@@ -1015,8 +1017,9 @@ describe('Additional Schema Strict and Negative Tests II', () => {
       const result = EIP1559TxParamsSchema.safeParse({ ...validTxParams, extra: 'x' });
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.errors[0].message)
-          .toBe('EIP-1559トランザクションで許可されていないフィールドが含まれています。');
+        expect(result.error.errors[0]!.message).toBe(
+          'EIP-1559トランザクションで許可されていないフィールドが含まれています。'
+        );
       }
     });
   });
@@ -1027,7 +1030,7 @@ describe('Additional Schema Strict and Negative Tests II', () => {
       const result = ExecuteTransactionResultSchema.safeParse(res);
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.errors[0].message).toContain('有効なURL');
+        expect(result.error.errors[0]!.message).toContain('有効なURL');
       }
     });
   });
@@ -1067,7 +1070,7 @@ describe('Additional Schema Strict and Negative Tests II', () => {
       const result = ErrorStringSchema.safeParse(123);
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.errors[0].message).toBe('Expected string, received number');
+        expect(result.error.errors[0]!.message).toBe('Expected string, received number');
       }
     });
   });

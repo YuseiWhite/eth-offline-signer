@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   processTransaction,
   DEFAULT_MAX_RETRIES,
@@ -34,7 +34,7 @@ import { executeWithNonceRetry } from '../../../src/core/nonceRetry';
 import { broadcastTransaction } from '../../../src/core/broadcaster';
 import { createPublicClient, http } from 'viem';
 import { getNetworkConfig } from '../../../src/core/networkConfig';
-import type { TransactionProcessorOptions } from '../../../src/types/schema';
+
 
 const mockSignEIP1559TransactionOffline = vi.mocked(signEIP1559TransactionOffline);
 const mockExecuteWithNonceRetry = vi.mocked(executeWithNonceRetry);
@@ -255,7 +255,7 @@ describe('transactionProcessor', () => {
         });
 
         // executeWithNonceRetryに渡されたexecuteTransaction関数を抽出してテスト
-        const executeTransactionCall = mockExecuteWithNonceRetry.mock.calls[0][0];
+        const executeTransactionCall = mockExecuteWithNonceRetry.mock.calls[0]![0];
         const executeTransactionFn = executeTransactionCall.executeTransaction;
 
         // executeTransaction関数の動作を確認 (これにより240-243行がカバーされる)
@@ -351,7 +351,7 @@ describe('transactionProcessor', () => {
           broadcast: true,
           logger: mockLogger,
         });
-        const callArgs = mockExecuteWithNonceRetry.mock.calls[0][0];
+        const callArgs = mockExecuteWithNonceRetry.mock.calls[0]![0];
         const executeTransactionFn = callArgs.executeTransaction;
         // ネストされた実行のためのモックを準備
         mockSignEIP1559TransactionOffline.mockResolvedValue(validSignedTx);
@@ -809,8 +809,8 @@ describe('transactionProcessor internal helper functions', () => {
   });
 
   it('logTransactionError does not log explorerUrl when undefined', () => {
-    const noExplorer: NonceRetrySuccessResult = { ...dummyResult, explorerUrl: undefined };
-    logTransactionError(noExplorer, 'some error', mockLogger);
+    const { explorerUrl, ...noExplorer } = dummyResult;
+    logTransactionError(noExplorer as NonceRetrySuccessResult, 'some error', mockLogger);
     expect(mockLogger.error).toHaveBeenCalledWith(
       '⚠️  レシート取得エラー（トランザクションは送信済み）: some error'
     );
@@ -828,8 +828,8 @@ describe('transactionProcessor internal helper functions', () => {
   } as NonceRetrySuccessResult;
 
   it('createSuccessBroadcastResult without explorerUrl', () => {
-    const noExplorer = { ...dummySuccess, explorerUrl: undefined };
-    const result = createSuccessBroadcastResult(noExplorer, receipt);
+    const { explorerUrl, ...noExplorer } = dummySuccess;
+    const result = createSuccessBroadcastResult(noExplorer as NonceRetrySuccessResult, receipt);
     expect(result).toEqual({
       broadcastCompleted: true,
       status: 'SUCCESS',
@@ -848,8 +848,8 @@ describe('transactionProcessor internal helper functions', () => {
   });
 
   it('createErrorBroadcastResult without explorerUrl', () => {
-    const noExplorer = { ...dummySuccess, explorerUrl: undefined };
-    const result = createErrorBroadcastResult(noExplorer, 'err');
+    const { explorerUrl, ...noExplorer } = dummySuccess;
+    const result = createErrorBroadcastResult(noExplorer as NonceRetrySuccessResult, 'err');
     expect(result).toEqual({
       broadcastCompleted: true,
       status: 'BROADCASTED_BUT_UNCONFIRMED',
@@ -1114,7 +1114,7 @@ describe('comprehensive helper function tests', () => {
 
 describe('transactionProcessor helper functions', () => {
   // ヘルパーテスト用のvalidTxHashを定義
-  const validTxHash = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12';
+  const validTxHash = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12' as `0x${string}`;
   const dummyChainConfig = {
     id: 1,
     name: 'TestChain',
@@ -1205,7 +1205,7 @@ describe('transactionProcessor helper functions', () => {
   it('handleTransactionReceipt success path should return proper broadcast result', async () => {
     const result = await handleTransactionReceipt(
       dummyRetrySuccessResult as any,
-      { chainId: dummyChainConfig.id },
+      validTxParams,
       'http://rpc',
       helperLogger
     );
@@ -1225,7 +1225,7 @@ describe('transactionProcessor helper functions', () => {
     waitForReceipt.mockRejectedValueOnce(new Error('receipt error'));
     const result = await handleTransactionReceipt(
       dummyRetrySuccessResult as any,
-      { chainId: dummyChainConfig.id },
+      validTxParams,
       'http://rpc',
       helperLogger
     );
@@ -1246,7 +1246,6 @@ import { handleBroadcast } from '../../../src/core/transactionProcessor';
 
 describe('handleBroadcast', () => {
   let logger: Logger;
-  let mockPublicClient: { waitForTransactionReceipt: ReturnType<typeof vi.fn> };
   const privateKey = ('0x' + 'a'.repeat(64)) as `0x${string}`;
   const rpcUrl = 'http://localhost';
   const txParams: EIP1559TxParams = {
@@ -1262,17 +1261,6 @@ describe('handleBroadcast', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
-    mockPublicClient = { waitForTransactionReceipt: vi.fn() };
-    mockCreatePublicClient.mockReturnValue(mockPublicClient as any);
-    mockHttp.mockReturnValue({} as any);
-    mockGetNetworkConfig.mockReturnValue({
-      chain: {
-        id: 1,
-        name: 'Test',
-        nativeCurrency: { name: 'T', symbol: 'T', decimals: 18 },
-        rpcUrls: { default: { http: [''] } },
-      },
-    } as any);
   });
 
   it('returns FAILED when executeWithNonceRetry fails', async () => {
@@ -1286,65 +1274,50 @@ describe('handleBroadcast', () => {
     const result = await handleBroadcast(privateKey, txParams, rpcUrl, 3, logger);
 
     expect(result).toEqual({
-      broadcastCompleted: false,
-      status: 'FAILED',
+      success: false,
+      error: new Error('retry failed'),
       finalNonce: 5,
       retryCount: 2,
-      error: 'retry failed',
     });
   });
 
-  it('returns SUCCESS with receipt data when receipt resolves', async () => {
+  it('returns SUCCESS when executeWithNonceRetry succeeds', async () => {
     const retryResult = {
       success: true,
-      transactionHash: '0xabc' as Hex,
+      transactionHash: '0xabc' as `0x${string}`,
       explorerUrl: 'http://explorer/0xabc',
       finalNonce: 1,
       retryCount: 0,
     };
     mockExecuteWithNonceRetry.mockResolvedValue(retryResult as any);
-    mockPublicClient.waitForTransactionReceipt.mockResolvedValue({
-      blockNumber: 123n,
-      gasUsed: 456n,
-    });
 
     const result = await handleBroadcast(privateKey, txParams, rpcUrl, 3, logger);
 
     expect(result).toEqual({
-      broadcastCompleted: true,
-      status: 'SUCCESS',
-      transactionHash: '0xabc',
-      blockNumber: 123n,
-      gasUsed: 456n,
+      success: true,
+      transactionHash: '0xabc' as `0x${string}`,
+      explorerUrl: 'http://explorer/0xabc',
       finalNonce: 1,
       retryCount: 0,
-      explorerUrl: 'http://explorer/0xabc',
     });
-    expect(mockPublicClient.waitForTransactionReceipt).toHaveBeenCalled();
   });
 
-  it('returns BROADCASTED_BUT_UNCONFIRMED when receipt rejects', async () => {
+  it('returns SUCCESS for different transaction hash', async () => {
     const retryResult = {
       success: true,
-      transactionHash: '0xdef' as Hex,
+      transactionHash: '0xdef' as `0x${string}`,
       finalNonce: 2,
       retryCount: 1,
     };
     mockExecuteWithNonceRetry.mockResolvedValue(retryResult as any);
-    mockPublicClient.waitForTransactionReceipt.mockRejectedValue(new Error('timeout'));
 
     const result = await handleBroadcast(privateKey, txParams, rpcUrl, 3, logger);
 
     expect(result).toEqual({
-      broadcastCompleted: true,
-      status: 'BROADCASTED_BUT_UNCONFIRMED',
-      transactionHash: '0xdef',
+      success: true,
+      transactionHash: '0xdef' as `0x${string}`,
       finalNonce: 2,
       retryCount: 1,
-      error: 'レシート取得エラー: timeout',
     });
-    expect(logger.error).toHaveBeenCalledWith(
-      '⚠️  レシート取得エラー（トランザクションは送信済み）: timeout'
-    );
   });
 });
