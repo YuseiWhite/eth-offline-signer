@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Run comprehensive quality checks
+pnpm run ci:verify
+
+echo "✅ Pre-commit checks completed successfully"
