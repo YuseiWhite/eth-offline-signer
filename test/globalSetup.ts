@@ -68,7 +68,7 @@ async function checkAnvilInstallation(): Promise<void> {
       );
     });
 
-    child.on('exit', (code) => {
+    child.on('exit', (code: number | null) => {
       if (code === 0) {
         resolve();
       } else {
