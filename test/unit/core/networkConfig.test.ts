@@ -5,7 +5,6 @@ import {
   getAllSupportedNetworks,
   getDisplayNetworkInfo,
   isBuiltinChainId,
-  type NetworkConfig,
   type NetworkConfigOverrides,
 } from '../../../src/core/networkConfig';
 import { NetworkError } from '../../../src/utils/errors';
