@@ -823,7 +823,7 @@ describe('Internal Schema Completeness Tests', () => {
 
   describe('LoggerSchema', () => {
     it('should accept valid logger object', () => {
-      const logger = { info: () => {}, warn: () => {}, error: () => {} };
+      const logger = { info: () => {}, warn: () => {}, error: () => {}, data: () => {} };
       expect(LoggerSchema.safeParse(logger).success).toBe(true);
     });
     it('should reject missing methods', () => {

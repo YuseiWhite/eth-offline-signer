@@ -5,7 +5,7 @@ import {
   handleTransactionReceipt,
 } from '../../../src/core/transactionProcessor';
 import type { EIP1559TxParams } from '../../../src/types/schema';
-import type { Logger } from '../../../src/core/transactionProcessor';
+import type { Logger } from '../../../src/utils/logger';
 
 // モック設定
 vi.mock('../../../src/core/signer', () => ({
@@ -72,6 +72,7 @@ describe('transactionProcessor', () => {
       info: vi.fn(),
       warn: vi.fn(),
       error: vi.fn(),
+      data: vi.fn(),
     };
 
     mockPublicClient = {
@@ -132,7 +133,7 @@ describe('transactionProcessor', () => {
           validTxParams
         );
         expect(mockLogger.info).toHaveBeenCalledWith('🔐 トランザクションの署名を開始...');
-        expect(mockLogger.info).toHaveBeenCalledWith(`✅ 署名完了: ${validSignedTx}`);
+        expect(mockLogger.info).toHaveBeenCalledWith('✅ 署名完了');
         expect(mockLogger.info).toHaveBeenCalledWith(
           '📝 オフライン署名のみ完了しました。ブロードキャストはスキップされます。'
         );
@@ -565,7 +566,7 @@ describe('transactionProcessor', () => {
         });
 
         expect(mockLogger.info).toHaveBeenCalledWith('🔐 トランザクションの署名を開始...');
-        expect(mockLogger.info).toHaveBeenCalledWith(`✅ 署名完了: ${validSignedTx}`);
+        expect(mockLogger.info).toHaveBeenCalledWith('✅ 署名完了');
         expect(mockLogger.info).toHaveBeenCalledWith(
           '📝 オフライン署名のみ完了しました。ブロードキャストはスキップされます。'
         );
@@ -581,7 +582,7 @@ describe('transactionProcessor', () => {
         });
 
         expect(mockLogger.info).toHaveBeenCalledWith('🔐 トランザクションの署名を開始...');
-        expect(mockLogger.info).toHaveBeenCalledWith(`✅ 署名完了: ${validSignedTx}`);
+        expect(mockLogger.info).toHaveBeenCalledWith('✅ 署名完了');
         expect(mockLogger.info).toHaveBeenCalledWith(
           '📡 トランザクションのブロードキャストを開始...'
         );
@@ -777,14 +778,10 @@ describe('transactionProcessor internal helper functions', () => {
     retryCount: 2,
   };
   const receipt = { blockNumber: 123n, gasUsed: 456n };
-  let mockLogger: {
-    info: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
-  };
+  let mockLogger: Logger;
 
   beforeEach(() => {
-    mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), data: vi.fn() };
   });
 
   it('logTransactionSuccess logs all lines when explorerUrl present', () => {
@@ -815,8 +812,8 @@ describe('transactionProcessor internal helper functions', () => {
       '⚠️  レシート取得エラー（トランザクションは送信済み）: some error'
     );
     expect(mockLogger.error).toHaveBeenCalledWith('📋 トランザクションハッシュ: 0xabc');
-    const calls = mockLogger.error.mock.calls.flat();
-    expect(calls.filter((call) => call.includes('🔗'))).toHaveLength(0);
+    const calls = (mockLogger.error as ReturnType<typeof vi.fn>).mock.calls.flat();
+    expect(calls.filter((call: string) => call.includes('🔗'))).toHaveLength(0);
   });
 
   const dummySuccess = {
@@ -895,7 +892,7 @@ import * as signer from '../../../src/core/signer';
 
 describe('transactionProcessor setLogger', () => {
   it('should use custom logger when set via setLogger', async () => {
-    const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), data: vi.fn() };
     setLogger(mockLogger);
 
     // signerをモック
@@ -916,13 +913,13 @@ describe('transactionProcessor setLogger', () => {
     const result = await processTransaction({ privateKey: validKey, txParams, broadcast: false });
     expect(result.signedTransaction).toBe('0xsigned');
     expect(mockLogger.info).toHaveBeenCalledWith('🔐 トランザクションの署名を開始...');
-    expect(mockLogger.info).toHaveBeenCalledWith('✅ 署名完了: 0xsigned');
+    expect(mockLogger.info).toHaveBeenCalledWith('✅ 署名完了');
   });
 });
 
 describe('comprehensive helper function tests', () => {
   it('logTransactionSuccess should handle all scenarios', () => {
-    const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), data: vi.fn() };
 
     // explorerUrlありでテスト
     const resultWithUrl: NonceRetrySuccessResult = {
@@ -944,7 +941,7 @@ describe('comprehensive helper function tests', () => {
     );
 
     // explorerUrlなしでテスト
-    mockLogger.info.mockClear();
+    (mockLogger.info as ReturnType<typeof vi.fn>).mockClear();
     const resultWithoutUrl: NonceRetrySuccessResult = {
       success: true,
       transactionHash: '0xdef' as Hex,
@@ -954,16 +951,15 @@ describe('comprehensive helper function tests', () => {
 
     logTransactionSuccess(resultWithoutUrl, receipt, mockLogger);
 
-    expect(mockLogger.info).toHaveBeenCalledWith('📋 トランザクションハッシュ: 0xdef');
     expect(mockLogger.info).toHaveBeenCalledWith('⛏️  ブロック番号: 123');
     expect(mockLogger.info).toHaveBeenCalledWith('⛽ ガス使用量: 456');
     // explorerUrlのログは呼び出されないはず
-    const calls = mockLogger.info.mock.calls.flat();
-    expect(calls.filter((call) => call.includes('🔗'))).toHaveLength(0);
+    const infoCalls = (mockLogger.info as ReturnType<typeof vi.fn>).mock.calls.flat();
+    expect(infoCalls.filter((call: string) => call.includes('🔗'))).toHaveLength(0);
   });
 
   it('logTransactionError should handle all scenarios', () => {
-    const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), data: vi.fn() };
 
     // explorerUrlありでテスト
     const resultWithUrl: NonceRetrySuccessResult = {
@@ -985,7 +981,7 @@ describe('comprehensive helper function tests', () => {
     );
 
     // explorerUrlなしでテスト
-    mockLogger.error.mockClear();
+    (mockLogger.error as ReturnType<typeof vi.fn>).mockClear();
     const resultWithoutUrl: NonceRetrySuccessResult = {
       success: true,
       transactionHash: '0xdef' as Hex,
@@ -1000,8 +996,8 @@ describe('comprehensive helper function tests', () => {
     );
     expect(mockLogger.error).toHaveBeenCalledWith('📋 トランザクションハッシュ: 0xdef');
     // explorerUrlのログは呼び出されないはず
-    const calls = mockLogger.error.mock.calls.flat();
-    expect(calls.filter((call) => call.includes('🔗'))).toHaveLength(0);
+    const errorCalls = (mockLogger.error as ReturnType<typeof vi.fn>).mock.calls.flat();
+    expect(errorCalls.filter((call: string) => call.includes('🔗'))).toHaveLength(0);
   });
 
   it('createSuccessBroadcastResult should handle all scenarios', () => {
@@ -1138,7 +1134,7 @@ describe('transactionProcessor helper functions', () => {
   let waitForReceipt: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    helperLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    helperLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), data: vi.fn() };
     vi.spyOn(networkConfigModule, 'getNetworkConfig').mockReturnValue(dummyNetworkConfig as any);
     mockHttp.mockReturnValue({} as any);
     waitForReceipt = vi.fn().mockResolvedValue(dummyReceipt);
@@ -1260,7 +1256,7 @@ describe('handleBroadcast', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), data: vi.fn() };
   });
 
   it('returns FAILED when executeWithNonceRetry fails', async () => {

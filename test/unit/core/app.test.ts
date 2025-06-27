@@ -37,18 +37,18 @@ describe('app.ts', () => {
   beforeAll(async () => {
     ({ runCli } = await import('../../../src/core/app.js'));
   });
-  let mockConsoleInfo: ReturnType<typeof vi.fn>;
-  let originalConsoleInfo: typeof console.info;
+  let mockConsoleError: ReturnType<typeof vi.fn>;
+  let originalConsoleError: typeof console.error;
 
   beforeEach(() => {
-    originalConsoleInfo = console.info;
-    mockConsoleInfo = vi.fn();
-    console.info = mockConsoleInfo;
+    originalConsoleError = console.error;
+    mockConsoleError = vi.fn();
+    console.error = mockConsoleError;
     vi.clearAllMocks();
   });
 
   afterEach(() => {
-    console.info = originalConsoleInfo;
+    console.error = originalConsoleError;
   });
 
   describe('loadTransactionParams', () => {
@@ -154,7 +154,7 @@ describe('app.ts', () => {
       await runCli(validOptions);
 
       expect(mockGetDisplayNetworkInfo).toHaveBeenCalledWith(1);
-      expect(mockConsoleInfo).toHaveBeenCalledWith(
+      expect(mockConsoleError).toHaveBeenCalledWith(
         expect.stringContaining('🌐 検出されたネットワーク: Ethereum Mainnet')
       );
     });
@@ -194,7 +194,7 @@ describe('app.ts', () => {
 
       await runCli(validOptions);
 
-      expect(mockConsoleInfo).toHaveBeenCalledWith(
+      expect(mockConsoleError).toHaveBeenCalledWith(
         expect.stringContaining(
           '⚠️  カスタムネットワークです。ブロードキャスト先が正しいことを確認してください。'
         )

@@ -91,9 +91,8 @@ describe('Logger Production Environment Tests', () => {
       vi.resetModules();
 
       // コンソールメソッドをスパイ
-      const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       // 動的インポートでロガーを取得
       const { logger } = await import('../../../src/utils/logger.js');
@@ -104,12 +103,11 @@ describe('Logger Production Environment Tests', () => {
       logger.error('テストエラー');
 
       // 本番ロガーが使用されていることを確認
-      expect(infoSpy).toHaveBeenCalledWith('テスト情報');
+      expect(errorSpy).toHaveBeenCalledWith('テスト情報'); // infoはconsole.errorに出力される
       expect(warnSpy).toHaveBeenCalledWith('テスト警告');
       expect(errorSpy).toHaveBeenCalledWith('テストエラー');
 
       // スパイをリストア
-      infoSpy.mockRestore();
       warnSpy.mockRestore();
       errorSpy.mockRestore();
     });
@@ -123,9 +121,8 @@ describe('Logger Production Environment Tests', () => {
       vi.resetModules();
 
       // コンソールメソッドをスパイ
-      const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       // 動的インポートでロガーを取得
       const { logger } = await import('../../../src/utils/logger.js');
@@ -136,12 +133,11 @@ describe('Logger Production Environment Tests', () => {
       logger.error('開発エラー');
 
       // 本番ロガーが使用されていることを確認
-      expect(infoSpy).toHaveBeenCalledWith('開発情報');
+      expect(errorSpy).toHaveBeenCalledWith('開発情報'); // infoはconsole.errorに出力される
       expect(warnSpy).toHaveBeenCalledWith('開発警告');
       expect(errorSpy).toHaveBeenCalledWith('開発エラー');
 
       // スパイをリストア
-      infoSpy.mockRestore();
       warnSpy.mockRestore();
       errorSpy.mockRestore();
     });
@@ -155,7 +151,7 @@ describe('Logger Production Environment Tests', () => {
       vi.resetModules();
 
       // コンソールメソッドをスパイ
-      const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       // 動的インポートでロガーを取得
       const { logger } = await import('../../../src/utils/logger.js');
@@ -164,10 +160,10 @@ describe('Logger Production Environment Tests', () => {
       logger.info('デフォルト情報');
 
       // 本番ロガーが使用されていることを確認
-      expect(infoSpy).toHaveBeenCalledWith('デフォルト情報');
+      expect(errorSpy).toHaveBeenCalledWith('デフォルト情報'); // infoはconsole.errorに出力される
 
       // スパイをリストア
-      infoSpy.mockRestore();
+      errorSpy.mockRestore();
     });
 
     it('VITEST=trueの場合、本番ロガーが使用される', async () => {
@@ -181,16 +177,16 @@ describe('Logger Production Environment Tests', () => {
       const { logger } = await import('../../../src/utils/logger.js');
 
       // コンソールメソッドをスパイ
-      const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       // ロガーメソッドを実行
       logger.info('テスト環境情報');
 
       // 本番ロガーが使用されていることを確認（テスト環境の処理を削除したため）
-      expect(infoSpy).toHaveBeenCalledWith('テスト環境情報');
+      expect(errorSpy).toHaveBeenCalledWith('テスト環境情報'); // infoはconsole.errorに出力される
 
       // スパイをリストア
-      infoSpy.mockRestore();
+      errorSpy.mockRestore();
     });
   });
 
@@ -204,13 +200,150 @@ describe('Logger Production Environment Tests', () => {
       expect(typeof testLogger.info).toBe('function');
       expect(typeof testLogger.warn).toBe('function');
       expect(typeof testLogger.error).toBe('function');
+      expect(typeof testLogger.data).toBe('function');
 
       // サイレント動作することを確認（例外が発生しないことを確認）
       expect(() => {
         testLogger.info('テスト');
         testLogger.warn('テスト');
         testLogger.error('テスト');
+        testLogger.data('テスト');
       }).not.toThrow();
+    });
+  });
+
+  describe('createLogger関数', () => {
+    it('quietオプションがfalseの場合、productionLoggerを返す', async () => {
+      const { createLogger } = await import('../../../src/utils/logger.js');
+
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const logger = createLogger({ quiet: false });
+
+      // productionLoggerの動作確認
+      logger.info('情報メッセージ');
+      logger.warn('警告メッセージ');
+      logger.error('エラーメッセージ');
+      logger.data('データメッセージ');
+
+      expect(errorSpy).toHaveBeenCalledWith('情報メッセージ');
+      expect(warnSpy).toHaveBeenCalledWith('警告メッセージ');
+      expect(errorSpy).toHaveBeenCalledWith('エラーメッセージ');
+      expect(logSpy).toHaveBeenCalledWith('データメッセージ');
+
+      logSpy.mockRestore();
+      errorSpy.mockRestore();
+      warnSpy.mockRestore();
+    });
+
+    it('quietオプションがtrueの場合、quietLoggerを返す', async () => {
+      const { createLogger } = await import('../../../src/utils/logger.js');
+
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const logger = createLogger({ quiet: true });
+
+      // quietLoggerの動作確認
+      logger.info('情報メッセージ');
+      logger.warn('警告メッセージ');
+      logger.error('エラーメッセージ');
+      logger.data('データメッセージ');
+
+      // info と warn は抑制される
+      expect(errorSpy).not.toHaveBeenCalledWith('情報メッセージ');
+      expect(warnSpy).not.toHaveBeenCalledWith('警告メッセージ');
+
+      // error と data は出力される
+      expect(errorSpy).toHaveBeenCalledWith('エラーメッセージ');
+      expect(logSpy).toHaveBeenCalledWith('データメッセージ');
+
+      logSpy.mockRestore();
+      errorSpy.mockRestore();
+      warnSpy.mockRestore();
+    });
+
+    it('quietオプションが未定義の場合、productionLoggerを返す', async () => {
+      const { createLogger } = await import('../../../src/utils/logger.js');
+
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const logger = createLogger({});
+
+      logger.info('デフォルト情報');
+
+      expect(errorSpy).toHaveBeenCalledWith('デフォルト情報');
+
+      errorSpy.mockRestore();
+    });
+  });
+
+  describe('デフォルトloggerエクスポート', () => {
+    it('loggerインスタンスが正しく動作する', async () => {
+      const { logger } = await import('../../../src/utils/logger.js');
+
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      // デフォルトloggerはproductionLoggerと同じ動作
+      logger.info('情報');
+      logger.warn('警告');
+      logger.error('エラー');
+      logger.data('データ');
+
+      expect(errorSpy).toHaveBeenCalledWith('情報');
+      expect(warnSpy).toHaveBeenCalledWith('警告');
+      expect(errorSpy).toHaveBeenCalledWith('エラー');
+      expect(logSpy).toHaveBeenCalledWith('データ');
+
+      logSpy.mockRestore();
+      errorSpy.mockRestore();
+      warnSpy.mockRestore();
+    });
+  });
+
+  describe('ロガーメソッドの個別テスト', () => {
+    it('productionLoggerのdataメソッドが正しく動作する', async () => {
+      const { createLogger } = await import('../../../src/utils/logger.js');
+
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const logger = createLogger({ quiet: false });
+      logger.data('テストデータ');
+
+      expect(logSpy).toHaveBeenCalledWith('テストデータ');
+
+      logSpy.mockRestore();
+    });
+
+    it('quietLoggerのinfoメソッドが何も出力しない', async () => {
+      const { createLogger } = await import('../../../src/utils/logger.js');
+
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const logger = createLogger({ quiet: true });
+      logger.info('抑制される情報');
+
+      expect(errorSpy).not.toHaveBeenCalledWith('抑制される情報');
+
+      errorSpy.mockRestore();
+    });
+
+    it('quietLoggerのwarnメソッドが何も出力しない', async () => {
+      const { createLogger } = await import('../../../src/utils/logger.js');
+
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const logger = createLogger({ quiet: true });
+      logger.warn('抑制される警告');
+
+      expect(warnSpy).not.toHaveBeenCalledWith('抑制される警告');
+
+      warnSpy.mockRestore();
     });
   });
 });
