@@ -24,6 +24,7 @@ export interface Logger {
   info(message: string): void;
   warn(message: string): void;
   error(message: string): void;
+  data(message: string): void;
 }
 
 /**
@@ -278,7 +279,7 @@ export async function processTransaction(
     privateKey as `0x${string}`,
     txParams
   );
-  userLogger.info(`✅ 署名完了: ${signedTransaction}`);
+  userLogger.info(`✅ 署名完了`);
 
   // 2. ブロードキャスト処理（オプション）
   if (!broadcast) {
