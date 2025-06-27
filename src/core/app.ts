@@ -17,6 +17,7 @@ import {
 
 // utilsへの依存 (core -> utils は許可された依存関係)
 import { InvalidInputError } from '../utils/errors';
+import { createLogger } from '../utils/logger';
 
 // cli.tsから移譲されたロジック
 function loadTransactionParams(filePath: string) {
@@ -41,13 +42,13 @@ function loadTransactionParams(filePath: string) {
 }
 
 // cli.tsから移譲された表示ロジックもここに含める
-function displayNetworkInfo(chainId: number): void {
+function displayNetworkInfo(chainId: number, logger: ReturnType<typeof createLogger>): void {
   const networkInfo = getDisplayNetworkInfo(chainId);
-  console.info(`🌐 検出されたネットワーク: ${networkInfo.name} (Chain ID: ${chainId})`);
-  console.info(`🔍 対応エクスプローラー: ${networkInfo.explorer}`);
+  logger.info(`🌐 検出されたネットワーク: ${networkInfo.name} (Chain ID: ${chainId})`);
+  logger.info(`🔍 対応エクスプローラー: ${networkInfo.explorer}`);
 
   if (networkInfo.type === 'custom') {
-    console.info('⚠️  カスタムネットワークです。ブロードキャスト先が正しいことを確認してください。');
+    logger.info('⚠️  カスタムネットワークです。ブロードキャスト先が正しいことを確認してください。');
   }
 }
 
@@ -60,22 +61,38 @@ export async function runCli(rawOptions: unknown) {
   try {
     const options = validateCliOptions(rawOptions);
 
+    // ファクトリパターンでquietモードの判定をロガー生成時に集約
+    const logger = createLogger({ quiet: options.quiet });
+
     privateKeyHandle = await loadPrivateKey(options.keyFile);
     const account = privateKeyToAccount(privateKeyHandle.privateKey);
-    console.info(`🔑 使用するアドレス: ${account.address}`);
+    logger.info(`🔑 使用するアドレス: ${account.address}`);
 
     const validatedParams = loadTransactionParams(options.params);
-    displayNetworkInfo(validatedParams.chainId);
+    displayNetworkInfo(validatedParams.chainId, logger);
 
     const transactionOptionsRaw = {
       privateKey: privateKeyHandle.privateKey,
       txParams: validatedParams,
       broadcast: options.broadcast,
       maxRetries: DEFAULT_MAX_RETRIES,
+      logger,
       ...(options.rpcUrl && { rpcUrl: options.rpcUrl }),
     };
     const transactionOptions = validateTransactionProcessorOptions(transactionOptionsRaw);
-    await processTransaction(transactionOptions);
+    const result = await processTransaction(transactionOptions);
+
+    // データ出力：quietモードではstdout、通常モードではstderrに情報を出力
+    if (options.quiet) {
+      if (!options.broadcast) {
+        logger.data(result.signedTransaction);
+      } else if (result.broadcast?.status === 'SUCCESS' && result.broadcast.transactionHash) {
+        logger.data(result.broadcast.transactionHash);
+      }
+    } else if (!options.broadcast) {
+        // 通常モードでは、stderrに署名済みトランザクションを出力
+        logger.info(`📝 署名済みトランザクション: ${result.signedTransaction}`);
+    }
   } finally {
     // finallyブロックはこちらに移動。coreロジックのリソース解放はcoreが責任を持つ。
     if (privateKeyHandle?.cleanup) {
