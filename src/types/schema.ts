@@ -128,6 +128,7 @@ export const LoggerSchema = z.object({
   info: z.function().args(z.string()).returns(z.void()),
   warn: z.function().args(z.string()).returns(z.void()),
   error: z.function().args(z.string()).returns(z.void()),
+  data: z.function().args(z.string()).returns(z.void()),
 });
 
 /**
@@ -182,6 +183,7 @@ export const CliOptionsSchema = z
       ),
     broadcast: z.boolean().default(false),
     rpcUrl: z.string().url('有効なRPCエンドポイントのURLを指定してください。').optional(),
+    quiet: z.boolean().default(false),
   })
   .refine((data) => !data.broadcast || data.rpcUrl !== undefined, {
     message:

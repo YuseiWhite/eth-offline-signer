@@ -149,7 +149,7 @@ jobs:
       - name: Test CLI signing functionality
         run: |
           echo "🔐 Testing CLI signing functionality..."
-          RESULT=$(node dist/cli.cjs sign --key-file test-build-key.key --params test-build-params.json)
+          RESULT=$(node dist/cli.cjs sign --key-file test-build-key.key --params test-build-params.json --quiet)
           echo "Signing result: $RESULT"
           if [[ $RESULT =~ ^0x[0-9a-fA-F]+$ ]]; then
             echo "✅ CLI signing test passed"

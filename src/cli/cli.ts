@@ -100,6 +100,7 @@ program
   .option('-p, --params <path>', 'トランザクションパラメータが含まれるJSONファイルへのパス。')
   .option('--broadcast', 'トランザクションをネットワークにブロードキャストします。')
   .option('--rpc-url <url>', 'カスタムRPCエンドポイントのURL。')
+  .option('-q, --quiet', '署名済みトランザクションデータまたはトランザクションハッシュのみ出力します。')
   .allowUnknownOption(false)
   .action(
     /**
@@ -112,6 +113,7 @@ program
       params?: string;
       broadcast?: boolean;
       rpcUrl?: string;
+      quiet?: boolean;
     }) => {
       try {
         // core層の唯一の窓口であるrunCliを呼び出す
