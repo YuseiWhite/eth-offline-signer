@@ -2,6 +2,7 @@ import { stat, readFile } from 'node:fs/promises';
 import { FilePathSchema, PrivateKeyFormatSchema, RawPrivateKeySchema } from '../types/schema';
 import { FileAccessError, PrivateKeyError } from '../utils/errors';
 import { ZodError } from 'zod';
+import { logger } from '../utils/logger';
 
 /**
  * 秘密鍵ハンドルの型定義
@@ -20,7 +21,27 @@ export interface PrivateKeyHandle {
  */
 async function validateFileAccess(filePath: string): Promise<void> {
   try {
-    await stat(filePath);
+    const stats = await stat(filePath);
+
+    // Linux/macOS でのファイルパーミッション確認
+    if (process.platform !== 'win32') {
+      const mode = stats.mode & 0o777;
+      const isSecure = mode === 0o400;
+
+      if (!isSecure) {
+        const currentPerm = mode.toString(8).padStart(3, '0');
+        logger.warn(
+          `⚠️  秘密鍵ファイルのパーミッションが安全ではありません。` +
+          `現在: ${currentPerm}, 推奨: 400。` +
+          `\n   修正方法: chmod 600 ${filePath}`
+        );
+      }
+    } else {
+      // Windows環境での警告
+      logger.warn(
+        `⚠️  Windows環境では、ファイルが適切に保護されていることを手動で確認してください: ${filePath}`
+      );
+    }
   } catch (error: unknown) {
     const err = error as { code?: string; message?: string };
     if (err.code === 'ENOENT') {
