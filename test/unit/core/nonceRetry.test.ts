@@ -29,6 +29,7 @@ describe('nonceRetry', () => {
     info: vi.fn(),
     error: vi.fn(),
     warn: vi.fn(),
+    data: vi.fn(),
   };
 
   beforeEach(() => {
