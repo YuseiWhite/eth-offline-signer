@@ -1,37 +1,26 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // vi.hoisted()を使用してモック変数を定義
-const mockReadFile = vi.hoisted(() => vi.fn());
-const mockStat = vi.hoisted(() => vi.fn());
-const mockResolve = vi.hoisted(() => vi.fn());
-const mockBasename = vi.hoisted(() => vi.fn());
-const mockPlatform = vi.hoisted(() => vi.fn());
+// const mockReadFile = vi.hoisted(() => vi.fn());
+// const mockStat = vi.hoisted(() => vi.fn());
+// const mockResolve = vi.hoisted(() => vi.fn());
+// const mockBasename = vi.hoisted(() => vi.fn());
+// const mockPlatform = vi.hoisted(() => vi.fn());
 
 // Node.jsモジュールのモック
 vi.mock('node:fs/promises', () => ({
-  default: {
-    readFile: mockReadFile,
-    stat: mockStat,
-  },
-  readFile: mockReadFile,
-  stat: mockStat,
+  readFile: vi.fn(),
+  stat: vi.fn(),
 }));
 
 vi.mock('node:path', () => ({
-  default: {
-    resolve: mockResolve,
-    basename: mockBasename,
-  },
-  resolve: mockResolve,
-  basename: mockBasename,
+  resolve: vi.fn((p) => p),
+  basename: vi.fn((p) => p.split('/').pop()),
 }));
 
-vi.mock('node:os', () => ({
-  default: {
-    platform: mockPlatform,
-  },
-  platform: mockPlatform,
-}));
+// vi.mock('node:os', () => ({
+//   platform: vi.fn(),
+// }));
 
 import * as fs from 'node:fs/promises';
 import { PrivateKeyFormatSchema } from '../../../src/types/schema';
@@ -39,24 +28,37 @@ import { loadPrivateKey } from '../../../src/core/keyManager';
 import { FileAccessError, PrivateKeyError } from '../../../src/utils/errors';
 
 describe('keyManager', () => {
+  const testKeyFilePath = '/test/path/test.key';
+  // 正確に64文字（32バイト）の有効な秘密鍵
+  const validPrivateKey = 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
+  const validPrivateKeyWithPrefix = '0x' + validPrivateKey;
+  const validPrivateKeyWithoutPrefix = validPrivateKey;
+
+  let platformSpy: ReturnType<typeof vi.spyOn>;
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    // Mock console.warn globally for this describe block
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    // Mock process.platform globally for this describe block, defaulting to 'linux'
+    // Use 'get' to mock the getter of the property
+    platformSpy = vi.spyOn(process, 'platform', 'get').mockReturnValue('linux');
+
+    // Default mocks for fs
+    vi.mocked(fs.readFile).mockResolvedValue(validPrivateKeyWithPrefix);
+    vi.mocked(fs.stat).mockResolvedValue({ mode: 0o100400 } as any); // Default safe permission
+  });
+
+  afterEach(() => {
+    // vi.clearAllMocks() in beforeEach should handle this, but explicit restore is safer
+    warnSpy.mockRestore();
+    platformSpy.mockRestore();
+  });
+
   describe('loadPrivateKey', () => {
-    const testKeyFilePath = '/test/path/test.key';
-    // 正確に64文字（32バイト）の有効な秘密鍵
-    const validPrivateKey = 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
-    const validPrivateKeyWithPrefix = '0x' + validPrivateKey;
-    const validPrivateKeyWithoutPrefix = validPrivateKey;
-
-    beforeEach(() => {
-      vi.clearAllMocks();
-
-      // デフォルトのモック設定
-      mockResolve.mockReturnValue(testKeyFilePath);
-      mockBasename.mockReturnValue('test.key');
-      mockPlatform.mockReturnValue('linux');
-      mockStat.mockResolvedValue({ mode: 0o100400 });
-      mockReadFile.mockResolvedValue(validPrivateKeyWithPrefix);
-    });
-
     describe('正常系', () => {
       it('有効な秘密鍵ファイル（0xプレフィックス付き）を正常に読み込む', async () => {
         const result = await loadPrivateKey('test.key');
@@ -65,7 +67,7 @@ describe('keyManager', () => {
       });
 
       it('有効な秘密鍵ファイル（0xプレフィックスなし）を正常に読み込み、プレフィックスを追加', async () => {
-        mockReadFile.mockResolvedValue(validPrivateKeyWithoutPrefix);
+        vi.mocked(fs.readFile).mockResolvedValue(validPrivateKeyWithoutPrefix);
 
         const result = await loadPrivateKey('test.key');
         expect(result.privateKey).toBe(validPrivateKeyWithPrefix); // 0xプレフィックスが追加される
@@ -73,7 +75,7 @@ describe('keyManager', () => {
       });
 
       it('前後の空白を含む秘密鍵ファイルを正常に処理', async () => {
-        mockReadFile.mockResolvedValue(`  ${validPrivateKeyWithPrefix}  \n`);
+        vi.mocked(fs.readFile).mockResolvedValue(`  ${validPrivateKeyWithPrefix}  \n`);
 
         const result = await loadPrivateKey('test.key');
         expect(result.privateKey).toBe(validPrivateKeyWithPrefix);
@@ -92,29 +94,30 @@ describe('keyManager', () => {
 
     describe('パーミッションチェック', () => {
       it('POSIX環境で400パーミッションの場合は警告なし', async () => {
-        mockPlatform.mockReturnValue('linux');
-        mockStat.mockResolvedValue({ mode: 0o100400 });
+        // platformSpy is already 'linux' by default
+        vi.mocked(fs.stat).mockResolvedValue({ mode: 0o100400 } as any);
 
         const result = await loadPrivateKey('test.key');
         expect(result.privateKey).toBe(validPrivateKeyWithPrefix);
+        expect(warnSpy).not.toHaveBeenCalled(); // No warn call
       });
 
       it('POSIX環境で400以外のパーミッションの場合は警告を出力', async () => {
-        mockPlatform.mockReturnValue('linux');
-        mockStat.mockResolvedValue({ mode: 0o100644 }); // 644パーミッション
-        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        // platformSpy is already 'linux' by default
+        vi.mocked(fs.stat).mockResolvedValue({ mode: 0o100644 } as any); // 644パーミッション
         const result = await loadPrivateKey('test.key');
         expect(result.privateKey).toBe(validPrivateKeyWithPrefix);
         expect(warnSpy).toHaveBeenCalledWith(
           expect.stringContaining('⚠️  秘密鍵ファイルのパーミッションが安全ではありません。')
         );
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('推奨: 400')
+        );
       });
 
       it('Windows環境ではパーミッションチェックをスキップ', async () => {
-        // process.platformを一時的にwin32に変更
-        const originalPlatform = process.platform;
-        Object.defineProperty(process, 'platform', { value: 'win32' });
-        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        // Override platformSpy for this specific test
+        platformSpy.mockReturnValue('win32');
         const result = await loadPrivateKey('test.key');
         expect(result.privateKey).toBe(validPrivateKeyWithPrefix);
         expect(warnSpy).toHaveBeenCalledWith(
@@ -122,8 +125,6 @@ describe('keyManager', () => {
             '⚠️  Windows環境では、ファイルが適切に保護されていることを手動で確認してください:'
           )
         );
-        // process.platformを元に戻す
-        Object.defineProperty(process, 'platform', { value: originalPlatform });
       });
     });
 
@@ -161,7 +162,7 @@ describe('keyManager', () => {
       it('ファイルが存在しない場合のエラー', async () => {
         const enoentError = new Error('ENOENT: no such file or directory');
         (enoentError as any).code = 'ENOENT';
-        mockReadFile.mockRejectedValue(enoentError);
+        vi.mocked(fs.readFile).mockRejectedValue(enoentError);
 
         await expect(loadPrivateKey('nonexistent.key')).rejects.toThrow(FileAccessError);
         await expect(loadPrivateKey('nonexistent.key')).rejects.toThrow(
@@ -172,7 +173,7 @@ describe('keyManager', () => {
       it('ファイル読み込み権限エラー', async () => {
         const eaccessError = new Error('EACCES: permission denied');
         (eaccessError as any).code = 'EACCES';
-        mockReadFile.mockRejectedValue(eaccessError);
+        vi.mocked(fs.readFile).mockRejectedValue(eaccessError);
 
         await expect(loadPrivateKey('test.key')).rejects.toThrow(FileAccessError);
         await expect(loadPrivateKey('test.key')).rejects.toThrow('の読み込みに失敗しました');
@@ -180,7 +181,7 @@ describe('keyManager', () => {
 
       it('一般的なファイル読み込みエラー', async () => {
         const genericError = new Error('Generic file error');
-        mockReadFile.mockRejectedValue(genericError);
+        vi.mocked(fs.readFile).mockRejectedValue(genericError);
 
         await expect(loadPrivateKey('test.key')).rejects.toThrow(FileAccessError);
         await expect(loadPrivateKey('test.key')).rejects.toThrow('の読み込みに失敗しました');
@@ -188,14 +189,14 @@ describe('keyManager', () => {
 
       it('パーミッションチェック中のエラー', async () => {
         const statError = new Error('Permission denied during stat');
-        mockStat.mockRejectedValue(statError);
+        vi.mocked(fs.stat).mockRejectedValue(statError);
 
         await expect(loadPrivateKey('test.key')).rejects.toThrow(FileAccessError);
       });
 
       it('不明なステータスエラーで一般的なFileAccessErrorを投げる', async () => {
         // stat throws unknown error code
-        mockStat.mockRejectedValue({ code: 'OTHER', message: 'other error' });
+        vi.mocked(fs.stat).mockRejectedValue({ code: 'OTHER', message: 'other error' });
         await expect(loadPrivateKey('test.key')).rejects.toThrow(FileAccessError);
         await expect(loadPrivateKey('test.key')).rejects.toThrow(
           /ファイルアクセスエラー: other error/
@@ -205,14 +206,14 @@ describe('keyManager', () => {
 
     describe('異常系 - 秘密鍵バリデーション', () => {
       it('空の秘密鍵でエラー', async () => {
-        mockReadFile.mockResolvedValue('');
+        vi.mocked(fs.readFile).mockResolvedValue('');
 
         await expect(loadPrivateKey('test.key')).rejects.toThrow(PrivateKeyError);
         await expect(loadPrivateKey('test.key')).rejects.toThrow('秘密鍵が空です。');
       });
 
       it('空白のみの秘密鍵でエラー', async () => {
-        mockReadFile.mockResolvedValue('   \n\t  ');
+        vi.mocked(fs.readFile).mockResolvedValue('   \n\t  ');
 
         await expect(loadPrivateKey('test.key')).rejects.toThrow(PrivateKeyError);
         await expect(loadPrivateKey('test.key')).rejects.toThrow('秘密鍵が空です。');
@@ -220,7 +221,7 @@ describe('keyManager', () => {
 
       it('短すぎる秘密鍵でエラー', async () => {
         const shortKey = '0x123456'; // 8文字: 0x + 6文字
-        mockReadFile.mockResolvedValue(shortKey);
+        vi.mocked(fs.readFile).mockResolvedValue(shortKey);
 
         await expect(loadPrivateKey('test.key')).rejects.toThrow(PrivateKeyError);
         await expect(loadPrivateKey('test.key')).rejects.toThrow(
@@ -230,7 +231,7 @@ describe('keyManager', () => {
 
       it('長すぎる秘密鍵でエラー', async () => {
         const longKey = '0x' + 'a'.repeat(70); // 70文字（64文字より長い）
-        mockReadFile.mockResolvedValue(longKey);
+        vi.mocked(fs.readFile).mockResolvedValue(longKey);
 
         await expect(loadPrivateKey('test.key')).rejects.toThrow(PrivateKeyError);
         await expect(loadPrivateKey('test.key')).rejects.toThrow(
@@ -240,7 +241,7 @@ describe('keyManager', () => {
 
       it('無効な16進文字を含む秘密鍵でエラー', async () => {
         const invalidKey = '0x' + 'g'.repeat(64); // 'g'は16進文字ではない
-        mockReadFile.mockResolvedValue(invalidKey);
+        vi.mocked(fs.readFile).mockResolvedValue(invalidKey);
 
         await expect(loadPrivateKey('test.key')).rejects.toThrow(PrivateKeyError);
         await expect(loadPrivateKey('test.key')).rejects.toThrow(
@@ -250,7 +251,7 @@ describe('keyManager', () => {
 
       it('0xプレフィックスなしで無効な文字を含む秘密鍵でエラー', async () => {
         const invalidKey = 'g'.repeat(64); // 'g'は16進文字ではない
-        mockReadFile.mockResolvedValue(invalidKey);
+        vi.mocked(fs.readFile).mockResolvedValue(invalidKey);
 
         await expect(loadPrivateKey('test.key')).rejects.toThrow(PrivateKeyError);
         await expect(loadPrivateKey('test.key')).rejects.toThrow(
@@ -260,7 +261,7 @@ describe('keyManager', () => {
 
       it('不正な16進数形式の秘密鍵でエラー', async () => {
         // 長さ不足ではなくフォーマット不正として処理されるケース
-        mockReadFile.mockResolvedValue(
+        vi.mocked(fs.readFile).mockResolvedValue(
           'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz'
         );
 
@@ -274,7 +275,7 @@ describe('keyManager', () => {
     describe('エッジケース', () => {
       it('大文字の16進文字を含む秘密鍵を正常に処理', async () => {
         const upperCaseKey = '0xABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890';
-        mockReadFile.mockResolvedValue(upperCaseKey);
+        vi.mocked(fs.readFile).mockResolvedValue(upperCaseKey);
 
         const result = await loadPrivateKey('test.key');
         expect(result.privateKey).toBe(upperCaseKey);
@@ -283,7 +284,7 @@ describe('keyManager', () => {
 
       it('混合大小文字の16進文字を含む秘密鍵を正常に処理', async () => {
         const mixedCaseKey = '0xAbCdEf1234567890aBcDeF1234567890AbCdEf1234567890aBcDeF1234567890';
-        mockReadFile.mockResolvedValue(mixedCaseKey);
+        vi.mocked(fs.readFile).mockResolvedValue(mixedCaseKey);
 
         const result = await loadPrivateKey('test.key');
         expect(result.privateKey).toBe(mixedCaseKey);
@@ -315,7 +316,7 @@ describe('keyManager', () => {
     describe('予期しないエラーの処理', () => {
       it('予期しないエラーをFileAccessErrorとして再スロー', async () => {
         const unexpectedError = new TypeError('Unexpected error');
-        mockReadFile.mockRejectedValue(unexpectedError);
+        vi.mocked(fs.readFile).mockRejectedValue(unexpectedError);
 
         await expect(loadPrivateKey('test.key')).rejects.toThrow(FileAccessError);
         await expect(loadPrivateKey('test.key')).rejects.toThrow('の読み込みに失敗しました');
@@ -339,7 +340,7 @@ describe('keyManager', () => {
 
       it('エラー時でもメモリがクリーンアップされる', async () => {
         // 無効な秘密鍵を設定してエラーを発生させる
-        mockReadFile.mockResolvedValue('invalid-key');
+        vi.mocked(fs.readFile).mockResolvedValue('invalid-key');
 
         try {
           await loadPrivateKey('test.key');
