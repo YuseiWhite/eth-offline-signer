@@ -83,7 +83,7 @@ eth-offline-signerは、Ethereumトランザクション（EIP-1559形式）を�
     cat > transaction.json << 'EOF'
     {
         "to": "<receiver's address>",
-        "value": "<value-you-want-to-transfer(wei)",
+        "value": "<value-you-want-to-transfer(wei)>",
         "chainId": <chain-id>,
         "nonce": <nonce>,
         "gasLimit": "<wei>",
