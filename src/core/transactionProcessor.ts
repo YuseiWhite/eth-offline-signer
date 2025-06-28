@@ -91,7 +91,6 @@ function logTransactionSuccess(
   receipt: { blockNumber: bigint; gasUsed: bigint },
   logger: Logger
 ): void {
-  logger.info(`📋 トランザクションハッシュ: ${retryResult.transactionHash}`);
   logger.info(`⛏️  ブロック番号: ${receipt.blockNumber}`);
   logger.info(`⛽ ガス使用量: ${receipt.gasUsed}`);
   if (retryResult.explorerUrl) {
@@ -112,7 +111,6 @@ function logTransactionError(
   logger: Logger
 ): void {
   logger.error(`⚠️  レシート取得エラー（トランザクションは送信済み）: ${errorMessage}`);
-  logger.error(`📋 トランザクションハッシュ: ${retryResult.transactionHash}`);
   if (retryResult.explorerUrl) {
     logger.error(`🔗 エクスプローラーURL: ${retryResult.explorerUrl}`);
   }
