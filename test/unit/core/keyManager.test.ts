@@ -33,9 +33,10 @@ vi.mock('node:os', () => ({
   platform: mockPlatform,
 }));
 
+import * as fs from 'node:fs/promises';
+import { PrivateKeyFormatSchema } from '../../../src/types/schema';
 import { loadPrivateKey } from '../../../src/core/keyManager';
 import { FileAccessError, PrivateKeyError } from '../../../src/utils/errors';
-import * as fs from 'node:fs/promises';
 
 describe('keyManager', () => {
   describe('loadPrivateKey', () => {
@@ -101,17 +102,28 @@ describe('keyManager', () => {
       it('POSIX環境で400以外のパーミッションの場合は警告を出力', async () => {
         mockPlatform.mockReturnValue('linux');
         mockStat.mockResolvedValue({ mode: 0o100644 }); // 644パーミッション
-
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
         const result = await loadPrivateKey('test.key');
         expect(result.privateKey).toBe(validPrivateKeyWithPrefix);
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('⚠️  秘密鍵ファイルのパーミッションが安全ではありません。')
+        );
       });
 
       it('Windows環境ではパーミッションチェックをスキップ', async () => {
-        mockPlatform.mockReturnValue('win32');
-        // Windows環境ではstatは呼ばれない
-
+        // process.platformを一時的にwin32に変更
+        const originalPlatform = process.platform;
+        Object.defineProperty(process, 'platform', { value: 'win32' });
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
         const result = await loadPrivateKey('test.key');
         expect(result.privateKey).toBe(validPrivateKeyWithPrefix);
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining(
+            '⚠️  Windows環境では、ファイルが適切に保護されていることを手動で確認してください:'
+          )
+        );
+        // process.platformを元に戻す
+        Object.defineProperty(process, 'platform', { value: originalPlatform });
       });
     });
 
@@ -374,6 +386,27 @@ describe('keyManager internal error cases', () => {
         '秘密鍵ファイルのパスが指定されていません'
       );
     });
+
+    it('should throw PrivateKeyError for invalid file extension', async () => {
+      // This should trigger the ZodError handling in loadPrivateKeyFromFile (lines 86-87)
+      await expect(loadPrivateKey('invalid-file.txt')).rejects.toThrow(PrivateKeyError);
+      await expect(loadPrivateKey('invalid-file.txt')).rejects.toThrow(
+        '秘密鍵ファイルは.key拡張子である必要があります'
+      );
+    });
+
+    it('should handle non-ZodError during file path validation', async () => {
+      // This would test the generic error handling (lines 98-99)
+      const { FilePathSchema } = await import('../../../src/types/schema');
+      const genericError = new Error('Generic validation error');
+      const parseSpy = vi.spyOn(FilePathSchema, 'parse').mockImplementation(() => { throw genericError; });
+      
+      try {
+        await expect(loadPrivateKey('test.key')).rejects.toThrow(genericError);
+      } finally {
+        parseSpy.mockRestore();
+      }
+    });
   });
 
   describe('validateFileAccess error cases', () => {
@@ -469,13 +502,30 @@ describe('keyManager internal error cases', () => {
 
     it('should handle non-ZodError during normalization', async () => {
       vi.mocked(fs.readFile).mockResolvedValue('some-other-error-trigger');
-
       await expect(loadPrivateKey('other-error.key')).rejects.toThrow(PrivateKeyError);
+    });
+
+    it('should convert generic normalization error to PrivateKeyError', async () => {
+      // simulate generic error during normalization
+      const genericError = new Error('generic');
+      const parseSpy = vi.spyOn(PrivateKeyFormatSchema, 'parse').mockImplementation(() => { throw genericError; });
+      // valid private key to reach normalization step
+      const validKey = '0x' + 'a'.repeat(64);
+      vi.mocked(fs.readFile).mockResolvedValue(validKey);
+      // override process.platform for permission check
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, 'platform', { value: 'linux' });
+      await expect(loadPrivateKey('test.key')).rejects.toThrow(PrivateKeyError);
+      await expect(loadPrivateKey('test.key')).rejects.toThrow('秘密鍵の形式が無効です。generic');
+      // restore platform and spy
+      Object.defineProperty(process, 'platform', { value: originalPlatform });
+      parseSpy.mockRestore();
     });
   });
 
   describe('PrivateKeyHandle cleanup functionality', () => {
     beforeEach(() => {
+      vi.clearAllMocks();
       vi.mocked(fs.stat).mockResolvedValue({} as any);
       vi.mocked(fs.readFile).mockResolvedValue('0x' + 'a'.repeat(64));
     });
@@ -511,6 +561,7 @@ describe('keyManager internal error cases', () => {
 
   describe('normalizePrivateKey with 0x prefix handling', () => {
     beforeEach(() => {
+      vi.clearAllMocks();
       vi.mocked(fs.stat).mockResolvedValue({} as any);
     });
 
