@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import path from 'node:path';
-import { toError, handleCliError, getPackageVersion, program } from '../../../src/cli/cli';
 
 // テスト中のCLI実行を防ぐためのモック依存関係
 vi.mock('../../../src/core/app.js', () => ({
