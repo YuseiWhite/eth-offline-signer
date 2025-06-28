@@ -82,16 +82,29 @@ export async function runCli(rawOptions: unknown) {
     const transactionOptions = validateTransactionProcessorOptions(transactionOptionsRaw);
     const result = await processTransaction(transactionOptions);
 
-    // データ出力：quietモードではstdout、通常モードではstderrに情報を出力
-    if (options.quiet) {
-      if (!options.broadcast) {
-        logger.data(result.signedTransaction);
-      } else if (result.broadcast?.status === 'SUCCESS' && result.broadcast.transactionHash) {
+    // データ出力：重要なデータ（署名済みTx、Txハッシュ）は常にstdoutに出力
+    // それ以外の情報はstderrに出力
+    if (!options.broadcast) {
+      // オフライン署名
+      logger.data(result.signedTransaction);
+      if (!options.quiet) {
+        logger.info('📝 署名済みトランザクションを標準出力しました。');
+      }
+    } else if (result.broadcast) {
+      // ブロードキャスト時
+      if (result.broadcast.transactionHash) {
         logger.data(result.broadcast.transactionHash);
       }
-    } else if (!options.broadcast) {
-        // 通常モードでは、stderrに署名済みトランザクションを出力
-        logger.info(`📝 署名済みトランザクション: ${result.signedTransaction}`);
+
+      if (!options.quiet) {
+        if (result.broadcast.status === 'SUCCESS') {
+          logger.info('✅ トランザクションは成功しました。トランザクションハッシュを標準出力しました。');
+        } else if (result.broadcast.status === 'BROADCASTED_BUT_UNCONFIRMED') {
+          logger.warn(
+            '⚠️ トランザクションはブロードキャストされましたが確認できませんでした。トランザクションハッシュを標準出力しました。'
+          );
+        }
+      }
     }
   } finally {
     // finallyブロックはこちらに移動。coreロジックのリソース解放はcoreが責任を持つ。
