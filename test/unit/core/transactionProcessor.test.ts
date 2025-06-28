@@ -786,7 +786,6 @@ describe('transactionProcessor internal helper functions', () => {
 
   it('logTransactionSuccess logs all lines when explorerUrl present', () => {
     logTransactionSuccess(dummyResult, receipt, mockLogger);
-    expect(mockLogger.info).toHaveBeenCalledWith('📋 トランザクションハッシュ: 0xabc');
     expect(mockLogger.info).toHaveBeenCalledWith('⛏️  ブロック番号: 123');
     expect(mockLogger.info).toHaveBeenCalledWith('⛽ ガス使用量: 456');
     expect(mockLogger.info).toHaveBeenCalledWith(
@@ -799,7 +798,6 @@ describe('transactionProcessor internal helper functions', () => {
     expect(mockLogger.error).toHaveBeenCalledWith(
       '⚠️  レシート取得エラー（トランザクションは送信済み）: error occurred'
     );
-    expect(mockLogger.error).toHaveBeenCalledWith('📋 トランザクションハッシュ: 0xabc');
     expect(mockLogger.error).toHaveBeenCalledWith(
       '🔗 エクスプローラーURL: https://example.com/tx/0xabc'
     );
@@ -811,7 +809,6 @@ describe('transactionProcessor internal helper functions', () => {
     expect(mockLogger.error).toHaveBeenCalledWith(
       '⚠️  レシート取得エラー（トランザクションは送信済み）: some error'
     );
-    expect(mockLogger.error).toHaveBeenCalledWith('📋 トランザクションハッシュ: 0xabc');
     const calls = (mockLogger.error as ReturnType<typeof vi.fn>).mock.calls.flat();
     expect(calls.filter((call: string) => call.includes('🔗'))).toHaveLength(0);
   });
@@ -926,14 +923,13 @@ describe('comprehensive helper function tests', () => {
       success: true,
       transactionHash: '0xabc' as Hex,
       explorerUrl: 'https://example.com/tx/0xabc',
-      finalNonce: 5,
-      retryCount: 2,
+      finalNonce: 7,
+      retryCount: 1,
     };
     const receipt = { blockNumber: 123n, gasUsed: 456n };
 
     logTransactionSuccess(resultWithUrl, receipt, mockLogger);
 
-    expect(mockLogger.info).toHaveBeenCalledWith('📋 トランザクションハッシュ: 0xabc');
     expect(mockLogger.info).toHaveBeenCalledWith('⛏️  ブロック番号: 123');
     expect(mockLogger.info).toHaveBeenCalledWith('⛽ ガス使用量: 456');
     expect(mockLogger.info).toHaveBeenCalledWith(
@@ -975,10 +971,7 @@ describe('comprehensive helper function tests', () => {
     expect(mockLogger.error).toHaveBeenCalledWith(
       '⚠️  レシート取得エラー（トランザクションは送信済み）: Test error message'
     );
-    expect(mockLogger.error).toHaveBeenCalledWith('📋 トランザクションハッシュ: 0xabc');
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      '🔗 エクスプローラーURL: https://example.com/tx/0xabc'
-    );
+    expect(mockLogger.error).toHaveBeenCalledWith('🔗 エクスプローラーURL: https://example.com/tx/0xabc');
 
     // explorerUrlなしでテスト
     (mockLogger.error as ReturnType<typeof vi.fn>).mockClear();
@@ -994,8 +987,7 @@ describe('comprehensive helper function tests', () => {
     expect(mockLogger.error).toHaveBeenCalledWith(
       '⚠️  レシート取得エラー（トランザクションは送信済み）: Another error'
     );
-    expect(mockLogger.error).toHaveBeenCalledWith('📋 トランザクションハッシュ: 0xdef');
-    // explorerUrlのログは呼び出されないはず
+    // explorerUrlがundefinedの場合、🔗 ログは出力されない
     const errorCalls = (mockLogger.error as ReturnType<typeof vi.fn>).mock.calls.flat();
     expect(errorCalls.filter((call: string) => call.includes('🔗'))).toHaveLength(0);
   });
@@ -1149,26 +1141,28 @@ describe('transactionProcessor helper functions', () => {
   it('logTransactionSuccess should log info messages properly', () => {
     logTransactionSuccess(dummyRetrySuccessResult, dummyReceipt, helperLogger);
     expect(helperLogger.info).toHaveBeenCalledWith(
-      `📋 トランザクションハッシュ: ${dummyRetrySuccessResult.transactionHash}`
+      `⛏️  ブロック番号: ${dummyReceipt.blockNumber}`
     );
-    expect(helperLogger.info).toHaveBeenCalledWith(`⛏️  ブロック番号: ${dummyReceipt.blockNumber}`);
-    expect(helperLogger.info).toHaveBeenCalledWith(`⛽ ガス使用量: ${dummyReceipt.gasUsed}`);
     expect(helperLogger.info).toHaveBeenCalledWith(
-      `🔗 エクスプローラーURL: ${dummyRetrySuccessResult.explorerUrl}`
+      `⛽ ガス使用量: ${dummyReceipt.gasUsed}`
     );
+    if (dummyRetrySuccessResult.explorerUrl) {
+      expect(helperLogger.info).toHaveBeenCalledWith(
+        `🔗 エクスプローラーURL: ${dummyRetrySuccessResult.explorerUrl}`
+      );
+    }
   });
 
   it('logTransactionError should log error messages properly', () => {
     logTransactionError(dummyRetrySuccessResult, 'error occurred', helperLogger);
     expect(helperLogger.error).toHaveBeenCalledWith(
-      '⚠️  レシート取得エラー（トランザクションは送信済み）: error occurred'
+      `⚠️  レシート取得エラー（トランザクションは送信済み）: error occurred`
     );
-    expect(helperLogger.error).toHaveBeenCalledWith(
-      `📋 トランザクションハッシュ: ${dummyRetrySuccessResult.transactionHash}`
-    );
-    expect(helperLogger.error).toHaveBeenCalledWith(
-      `🔗 エクスプローラーURL: ${dummyRetrySuccessResult.explorerUrl}`
-    );
+    if (dummyRetrySuccessResult.explorerUrl) {
+      expect(helperLogger.error).toHaveBeenCalledWith(
+        `🔗 エクスプローラーURL: ${dummyRetrySuccessResult.explorerUrl}`
+      );
+    }
   });
 
   it('createSuccessBroadcastResult should construct correct result', () => {

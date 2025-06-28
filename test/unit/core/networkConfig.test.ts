@@ -360,6 +360,16 @@ describe('networkConfig', () => {
       expect(result2.name).toContain('Unknown Network');
       expect(result2.type).toBe('custom');
     });
+
+    it('should return fallback info for unsupported chainId', () => {
+      const chainId = 999999;
+      const info = getDisplayNetworkInfo(chainId);
+      expect(info).toEqual({
+        name: `Unknown Network (${chainId})`,
+        explorer: 'N/A',
+        type: 'custom',
+      });
+    });
   });
 
   describe('エッジケース', () => {
@@ -546,6 +556,14 @@ describe('networkConfig', () => {
         explorer: 'N/A',
         type: 'custom',
       });
+    });
+  });
+
+  describe('getNetworkConfig', () => {
+    it('should throw NetworkError for unsupported chainId without custom configs', () => {
+      const chainId = 999999;
+      expect(() => getNetworkConfig(chainId)).toThrow(NetworkError);
+      expect(() => getNetworkConfig(chainId)).toThrow(`未サポートのチェーンID: ${chainId}`);
     });
   });
 });
