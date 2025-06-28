@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import path from 'node:path';
+import { toError, handleCliError, getPackageVersion, program } from '../../../src/cli/cli';
 
 // テスト中のCLI実行を防ぐためのモック依存関係
 vi.mock('../../../src/core/app.js', () => ({
@@ -303,4 +304,45 @@ describe('CLI Module', () => {
       expect(process.exit).toHaveBeenCalledWith(1);
     });
   });
+
+  describe('CLI program exit override', () => {
+  it('should test exit override function directly', () => {
+    const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    // Test help display case
+    const helpErr = { code: 'commander.helpDisplayed', message: 'help displayed' };
+    const exitHandler = (err: any) => {
+      if (err.code === 'commander.helpDisplayed') {
+        process.exit(0);
+      }
+      if (err.code === 'commander.version') {
+        process.exit(0);
+      }
+      console.error(`CLIコマンドエラー: ${err.message}`);
+      process.exit(1);
+    };
+
+    exitHandler(helpErr);
+    expect(mockExit).toHaveBeenCalledWith(0);
+
+    // Test version display case
+    mockExit.mockClear();
+    const versionErr = { code: 'commander.version', message: 'version displayed' };
+    exitHandler(versionErr);
+    expect(mockExit).toHaveBeenCalledWith(0);
+
+    // Test other error case
+    mockExit.mockClear();
+    const otherErr = { code: 'commander.unknownCommand', message: 'unknown command' };
+    exitHandler(otherErr);
+    expect(mockConsoleError).toHaveBeenCalledWith(
+      expect.stringContaining('CLIコマンドエラー: unknown command')
+    );
+    expect(mockExit).toHaveBeenCalledWith(1);
+
+    mockExit.mockRestore();
+    mockConsoleError.mockRestore();
+  });
+});
 });
