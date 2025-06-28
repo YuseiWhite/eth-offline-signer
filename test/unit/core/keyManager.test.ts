@@ -28,7 +28,6 @@ import { loadPrivateKey } from '../../../src/core/keyManager';
 import { FileAccessError, PrivateKeyError } from '../../../src/utils/errors';
 
 describe('keyManager', () => {
-  const testKeyFilePath = '/test/path/test.key';
   // 正確に64文字（32バイト）の有効な秘密鍵
   const validPrivateKey = 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
   const validPrivateKeyWithPrefix = '0x' + validPrivateKey;
