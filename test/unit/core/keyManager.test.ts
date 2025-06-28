@@ -397,7 +397,7 @@ describe('keyManager internal error cases', () => {
 
     it('should handle non-ZodError during file path validation', async () => {
       // This would test the generic error handling (lines 98-99)
-      const { FilePathSchema } = await import('../../../src/types/schema');
+      const { FilePathSchema } = await import('../../../src/types/schema.js');
       const genericError = new Error('Generic validation error');
       const parseSpy = vi.spyOn(FilePathSchema, 'parse').mockImplementation(() => { throw genericError; });
       
