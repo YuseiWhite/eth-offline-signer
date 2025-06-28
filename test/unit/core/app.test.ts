@@ -354,5 +354,132 @@ describe('app.ts', () => {
         expect.objectContaining({ rpcUrl: 'http://custom-rpc.local' })
       );
     });
+
+    it('should output transaction hash and info on broadcast in non-quiet mode', async () => {
+      const options = { keyFile: 'test.key', params: 'test.json', broadcast: true, rpcUrl: 'http://custom-rpc.local' };
+      const validTxParams = { to: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', value: '1', chainId: 1, nonce: 0, gasLimit: '21000', maxFeePerGas: '1', maxPriorityFeePerGas: '1' };
+      mockReadFileSync.mockReturnValue(JSON.stringify(validTxParams));
+      mockLoadPrivateKey.mockResolvedValue({ privateKey: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', cleanup: vi.fn() });
+      mockPrivateKeyToAccount.mockReturnValue({ address: '0xaddr' });
+      mockGetDisplayNetworkInfo.mockReturnValue({ name: 'Net', type: 'builtin', chainId: 1 });
+      mockProcessTransaction.mockResolvedValue({
+        signedTransaction: '0xsigned',
+        broadcast: { broadcastCompleted: true, status: 'SUCCESS', transactionHash: '0xhash', blockNumber: 1n, gasUsed: 21000n, finalNonce: 0, retryCount: 0 }
+      });
+      const originalLog = console.log;
+      const originalError = console.error;
+      const mockLog = vi.fn();
+      const mockError = vi.fn();
+      console.log = mockLog;
+      console.error = mockError;
+
+      await runCli(options);
+
+      expect(mockLog).toHaveBeenCalledWith('0xhash');
+      expect(mockError).toHaveBeenCalledWith(expect.stringContaining('✅ トランザクションは成功しました'));
+
+      console.log = originalLog;
+      console.error = originalError;
+    });
+
+    it('should output only transaction hash on broadcast in quiet mode', async () => {
+      const options = { keyFile: 'test.key', params: 'test.json', broadcast: true, rpcUrl: 'http://custom-rpc.local', quiet: true };
+      const validTxParams = { to: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', value: '1', chainId: 1, nonce: 0, gasLimit: '21000', maxFeePerGas: '1', maxPriorityFeePerGas: '1' };
+      mockReadFileSync.mockReturnValue(JSON.stringify(validTxParams));
+      mockLoadPrivateKey.mockResolvedValue({ privateKey: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', cleanup: vi.fn() });
+      mockPrivateKeyToAccount.mockReturnValue({ address: '0xaddr' });
+      mockGetDisplayNetworkInfo.mockReturnValue({ name: 'Net', type: 'builtin', chainId: 1 });
+      mockProcessTransaction.mockResolvedValue({
+        signedTransaction: '0xsigned',
+        broadcast: { broadcastCompleted: true, status: 'SUCCESS', transactionHash: '0xhash', blockNumber: 1n, gasUsed: 21000n, finalNonce: 0, retryCount: 0 }
+      });
+      const originalLog = console.log;
+      const originalError = console.error;
+      const mockLog = vi.fn();
+      const mockError = vi.fn();
+      console.log = mockLog;
+      console.error = mockError;
+
+      await runCli(options);
+
+      expect(mockLog).toHaveBeenCalledWith('0xhash');
+      expect(mockError).not.toHaveBeenCalled();
+
+      console.log = originalLog;
+      console.error = originalError;
+    });
+
+    it('should output transaction hash and warning on BROADCASTED_BUT_UNCONFIRMED status', async () => {
+      const options = { keyFile: 'test.key', params: 'test.json', broadcast: true, rpcUrl: 'http://custom-rpc.local' };
+      const validTxParams = { to: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', value: '1', chainId: 1, nonce: 0, gasLimit: '21000', maxFeePerGas: '1', maxPriorityFeePerGas: '1' };
+      mockReadFileSync.mockReturnValue(JSON.stringify(validTxParams));
+      mockLoadPrivateKey.mockResolvedValue({ privateKey: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', cleanup: vi.fn() });
+      mockPrivateKeyToAccount.mockReturnValue({ address: '0xaddr' });
+      mockGetDisplayNetworkInfo.mockReturnValue({ name: 'Net', type: 'builtin', chainId: 1 });
+      mockProcessTransaction.mockResolvedValue({
+        signedTransaction: '0xsigned',
+        broadcast: { broadcastCompleted: true, status: 'BROADCASTED_BUT_UNCONFIRMED', transactionHash: '0xhash', blockNumber: 1n, gasUsed: 21000n, finalNonce: 0, retryCount: 0 }
+      });
+      const originalLog = console.log;
+      const originalWarn = console.warn;
+      console.log = vi.fn();
+      console.warn = vi.fn();
+
+      await runCli(options);
+
+      expect(console.log).toHaveBeenCalledWith('0xhash');
+      expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('⚠️ トランザクションはブロードキャストされましたが確認できませんでした'));
+
+      console.log = originalLog;
+      console.warn = originalWarn;
+    });
+
+    it('should output signed transaction and info on offline signature in non-quiet mode', async () => {
+      const options = { keyFile: 'test.key', params: 'test.json', broadcast: false };
+      const validTxParams = { to: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', value: '1', chainId: 1, nonce: 0, gasLimit: '21000', maxFeePerGas: '1', maxPriorityFeePerGas: '1' };
+      mockReadFileSync.mockReturnValue(JSON.stringify(validTxParams));
+      mockLoadPrivateKey.mockResolvedValue({ privateKey: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', cleanup: vi.fn() });
+      mockPrivateKeyToAccount.mockReturnValue({ address: '0xaddr' });
+      mockGetDisplayNetworkInfo.mockReturnValue({ name: 'Net', type: 'builtin', chainId: 1 });
+      mockProcessTransaction.mockResolvedValue({ signedTransaction: '0xsigned' });
+      const originalLog = console.log;
+      const originalError = console.error;
+      const mockLog = vi.fn();
+      const mockError = vi.fn();
+      console.log = mockLog;
+      console.error = mockError;
+
+      await runCli(options);
+
+      expect(mockLog).toHaveBeenCalledWith('0xsigned');
+      expect(mockError).toHaveBeenCalledWith(expect.stringContaining('📝 署名済みトランザクションを標準出力しました。'));
+
+      console.log = originalLog;
+      console.error = originalError;
+    });
+
+    it('should output only signed transaction on offline signature in quiet mode', async () => {
+      const options = { keyFile: 'test.key', params: 'test.json', broadcast: false, quiet: true };
+      const validTxParams = { to: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', value: '1', chainId: 1, nonce: 0, gasLimit: '21000', maxFeePerGas: '1', maxPriorityFeePerGas: '1' };
+      mockReadFileSync.mockReturnValue(JSON.stringify(validTxParams));
+      mockLoadPrivateKey.mockResolvedValue({ privateKey: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', cleanup: vi.fn() });
+      mockPrivateKeyToAccount.mockReturnValue({ address: '0xaddr' });
+      mockGetDisplayNetworkInfo.mockReturnValue({ name: 'Net', type: 'builtin', chainId: 1 });
+      mockProcessTransaction.mockResolvedValue({ signedTransaction: '0xsigned' });
+      const originalLog = console.log;
+      const originalError = console.error;
+      const mockLog = vi.fn();
+      const mockError = vi.fn();
+      console.log = mockLog;
+      console.error = mockError;
+
+      await runCli(options);
+
+      expect(mockLog).toHaveBeenCalledWith('0xsigned');
+      expect(mockError).not.toHaveBeenCalled();
+
+      console.log = originalLog;
+      console.error = originalError;
+    });
   });
 });
