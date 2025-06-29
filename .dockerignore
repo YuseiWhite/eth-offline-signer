@@ -1,11 +1,26 @@
-node_modules
+# Git
 .git
-.env
-.DS_Store
-*.log
+.gitignore
+
+# Node
+node_modules
+npm-debug.log*
+yarn-error.log*
+
+# Build artifacts
 dist
-.cursor
-.github
-docs
+build
+
+# Test & Coverage
 coverage
-local-docs
+reports
+
+# Editor specific
+.vscode
+.idea
+.cursor
+.DS_Store
+
+# Local development
+local/
+local-docs/
