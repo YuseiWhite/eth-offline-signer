@@ -11,6 +11,8 @@
 | 003 | Dual Package Strategy | accepted | 不適切なexports設定によるESMコンシューマーでのモジュール解決エラー | デュアルパッケージ戦略でCJS/ESM両方を提供し完全互換性を実現 | [003-dual-package-strategy.md](./003-dual-package-strategy.md) |
 | 004 | Orchestrator Pattern Private Key Management | accepted | 秘密鍵管理でのセキュリティ、可読性、テスト容易性の同時実現要件 | Orchestrator PatternとSecureKeyStorageによる階層化アーキテクチャを採用 | [004-private-key-management.md](./004-private-key-management.md) |
 | 005 | Layered Architecture Selection | accepted | プロダクト特性分析の結果、適切なアーキテクチャパターンの選択が必要 | 過剰設計を避け層状アーキテクチャを採用、関数ベース実装で保守性とテスト性を確保 | [005-layered-architecture-selection.md](./005-layered-architecture-selection.md) |
+| 006 | Ethereum Transaction Format Selection | accepted | プロジェクト要件に適合する最適なEthereumトランザクション形式の選定が必要 | 学習効果と技術的標準性を重視し、EIP-1559を実装対象として選定 | [006-eth-transaction-format.md](./006-eth-transaction-format.md) |
+| 007 | Container Virtualization Technology Selection | accepted | コンテナ化技術の選択によるパフォーマンスとコストのバランスの最適化 | ハイパーバイザー型コンテナ化技術 OrbStack を選定 | [007-performance-vm-for-container.md](./007-performance-vm-for-container.md) |
 
 ## ADR作成ガイドライン
 
