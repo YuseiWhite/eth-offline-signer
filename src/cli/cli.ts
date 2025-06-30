@@ -3,6 +3,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { program } from 'commander';
+import { ZodError } from 'zod';
 import { runCli } from '../core/app';
 
 /**
@@ -19,11 +20,67 @@ function toError(error: unknown): Error {
 }
 
 /**
+ * CLIオプションバリデーションエラーのハンドリング
+ * @param zodError ZodErrorオブジェクト
+ * @description ユーザーフレンドリーなエラーメッセージを表示
+ */
+function handleCliValidationError(zodError: ZodError): void {
+  const errors = zodError.errors;
+
+  const missingKeyFile = errors.some(e => e.path.includes('keyFile'));
+  const missingParams = errors.some(e => e.path.includes('params'));
+
+  // keyFileとparamsの両方が不足している場合
+  if (missingKeyFile && missingParams) {
+    console.error('必須オプションが不足しています:');
+    console.error('   --key-file: 秘密鍵ファイル（.key拡張子）のパスを指定してください');
+    console.error('   --params: トランザクションパラメータJSONファイルのパスを指定してください');
+    console.error('');
+    console.error('使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json');
+    return;
+  }
+
+  // keyFileのみ不足
+  if (missingKeyFile) {
+    console.error('--key-fileオプションが必要です');
+    console.error('   秘密鍵ファイル（.key拡張子）のパスを指定してください');
+    return;
+  }
+
+  // paramsのみ不足
+  if (missingParams) {
+    console.error('--paramsオプションが必要です');
+    console.error('   トランザクションパラメータJSONファイルのパスを指定してください');
+    return;
+  }
+
+  // --broadcastオプション使用時のrpcUrlエラー
+  const rpcUrlError = errors.find(e => e.path.includes('rpcUrl'));
+  if (rpcUrlError) {
+    console.error('--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります');
+    console.error('');
+    console.error('使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json --broadcast --rpc-url https://eth-<network>.g.alchemy.com/v2/<YOUR_API_KEY>');
+    return;
+  }
+
+  // その他のバリデーションエラー
+  for (const error of errors) {
+    const field = error.path.join('.');
+    console.error(`${field}: ${error.message}`);
+  }
+}
+
+/**
  * CLIエラーのハンドリング
  * @param error エラーオブジェクト
  * @description ユーザーフレンドリーなエラー表示（UI制御）
  */
 function handleCliError(error: Error): void {
+  if (error instanceof ZodError) {
+    handleCliValidationError(error);
+    return;
+  }
+
   if (error.name === 'InvalidInputError') {
     console.error(`❌ 入力エラー: ${error.message}`);
     return;
