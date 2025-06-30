@@ -181,7 +181,7 @@ describe('CLI Module', () => {
 
       expect(mockConsoleError).toHaveBeenCalledWith('--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります');
       expect(mockConsoleError).toHaveBeenCalledWith('');
-      expect(mockConsoleError).toHaveBeenCalledWith('使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json --broadcast --rpc-url https://eth-<network>.g.alchemy.com/v2/<YOUR_API_KEY>');
+      expect(mockConsoleError).toHaveBeenCalledWith('使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json --broadcast --rpc-url https://eth-<network>.g.alchemy.com/v/<YOUR_API_KEY>');
     });
 
     it('should handle ZodError with other validation errors', async () => {
@@ -189,12 +189,41 @@ describe('CLI Module', () => {
       const { ZodError } = await import('zod');
 
       const zodError = new ZodError([
-        { code: 'custom', message: 'カスタムエラーメッセージ', path: ['customField'] }
+        { code: 'invalid_type', expected: 'string', received: 'undefined', path: ['customField'], message: 'カスタムエラーメッセージ' }
       ]);
 
       handleCliError(zodError);
 
-      expect(mockConsoleError).toHaveBeenCalledWith('customField: カスタムエラーメッセージ');
+      expect(mockConsoleError).toHaveBeenCalledWith('--custom-field: カスタムエラーメッセージ');
+    });
+
+    it('should skip custom errors in the general validation loop', async () => {
+      const { handleCliError } = await import('../../../src/cli/cli.js');
+      const { ZodError } = await import('zod');
+
+      const zodError = new ZodError([
+        {
+          code: 'custom',
+          message: 'This should be skipped',
+          path: ['customErrorField'],
+        },
+        {
+          code: 'invalid_type',
+          expected: 'string',
+          received: 'number',
+          path: ['anotherField'],
+          message: 'This should be displayed',
+        },
+      ]);
+
+      handleCliError(zodError);
+
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        '--another-field: This should be displayed'
+      );
+      expect(mockConsoleError).not.toHaveBeenCalledWith(
+        expect.stringContaining('This should be skipped')
+      );
     });
   });
 
@@ -428,50 +457,51 @@ describe('CLI Module', () => {
         '--broadcast'
       ]);
 
-      expect(console.error).toHaveBeenCalledWith('--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります');
-      expect(console.error).toHaveBeenCalledWith('使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json --broadcast --rpc-url https://eth-<network>.g.alchemy.com/v2/<YOUR_API_KEY>');
+      expect(mockConsoleError).toHaveBeenCalledWith('--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります');
+      expect(mockConsoleError).toHaveBeenCalledWith('');
+      expect(mockConsoleError).toHaveBeenCalledWith('使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json --broadcast --rpc-url https://eth-<network>.g.alchemy.com/v/<YOUR_API_KEY>');
       expect(process.exit).toHaveBeenCalledWith(1);
     });
   });
 
   describe('CLI program exit override', () => {
-  it('should test exit override function directly', () => {
-    const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-    const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    it('should test exit override function directly', async () => {
+      const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+      const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    // Test help display case
-    const helpErr = { code: 'commander.helpDisplayed', message: 'help displayed' };
-    const exitHandler = (err: any) => {
-      if (err.code === 'commander.helpDisplayed') {
-        process.exit(0);
-      }
-      if (err.code === 'commander.version') {
-        process.exit(0);
-      }
-      console.error(`CLIコマンドエラー: ${err.message}`);
-      process.exit(1);
-    };
+      // Test help display case
+      const helpErr = { code: 'commander.helpDisplayed', message: 'help displayed' };
+      const exitHandler = (err: any) => {
+        if (err.code === 'commander.helpDisplayed') {
+          process.exit(0);
+        }
+        if (err.code === 'commander.version') {
+          process.exit(0);
+        }
+        console.error(`CLIコマンドエラー: ${err.message}`);
+        process.exit(1);
+      };
 
-    exitHandler(helpErr);
-    expect(mockExit).toHaveBeenCalledWith(0);
+      exitHandler(helpErr);
+      expect(mockExit).toHaveBeenCalledWith(0);
 
-    // Test version display case
-    mockExit.mockClear();
-    const versionErr = { code: 'commander.version', message: 'version displayed' };
-    exitHandler(versionErr);
-    expect(mockExit).toHaveBeenCalledWith(0);
+      // Test version display case
+      mockExit.mockClear();
+      const versionErr = { code: 'commander.version', message: 'version displayed' };
+      exitHandler(versionErr);
+      expect(mockExit).toHaveBeenCalledWith(0);
 
-    // Test other error case
-    mockExit.mockClear();
-    const otherErr = { code: 'commander.unknownCommand', message: 'unknown command' };
-    exitHandler(otherErr);
-    expect(mockConsoleError).toHaveBeenCalledWith(
-      expect.stringContaining('CLIコマンドエラー: unknown command')
-    );
-    expect(mockExit).toHaveBeenCalledWith(1);
+      // Test other error case
+      mockExit.mockClear();
+      const otherErr = { code: 'commander.unknownCommand', message: 'unknown command' };
+      exitHandler(otherErr);
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining('CLIコマンドエラー: unknown command')
+      );
+      expect(mockExit).toHaveBeenCalledWith(1);
 
-    mockExit.mockRestore();
-    mockConsoleError.mockRestore();
+      mockExit.mockRestore();
+      mockConsoleError.mockRestore();
+    });
   });
-});
 });
