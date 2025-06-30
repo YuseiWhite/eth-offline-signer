@@ -576,10 +576,10 @@ describe('transactionProcessor', () => {
           logger: mockLogger,
         });
 
-        const infoCalls = (mockLogger.info as ReturnType<typeof vi.fn>).mock.calls.flat();
-        expect(infoCalls).toContain('トランザクションの署名を開始...');
-        expect(infoCalls).toContain('署名完了');
-        expect(infoCalls).toContain('オフライン署名のみ完了しました。ブロードキャストはスキップされます。');
+        expect(mockLogger.info).toHaveBeenCalledWith('トランザクションの署名を開始...');
+        expect(mockLogger.info).toHaveBeenCalledWith('署名完了');
+        expect(mockLogger.info).toHaveBeenCalledWith('オフライン署名のみ完了しました。ブロードキャストはスキップされます。');
+        expect(mockLogger.info).toHaveBeenCalledTimes(3);
       });
 
       it('ブロードキャスト付きの場合の適切なログ出力', async () => {
@@ -591,10 +591,10 @@ describe('transactionProcessor', () => {
           logger: mockLogger,
         });
 
-        const infoCalls = (mockLogger.info as ReturnType<typeof vi.fn>).mock.calls.flat();
-        expect(infoCalls).toContain('トランザクションの署名を開始...');
-        expect(infoCalls).toContain('署名完了');
-        expect(infoCalls).toContain('トランザクションのブロードキャストを開始...');
+        expect(mockLogger.info).toHaveBeenCalledWith('トランザクションの署名を開始...');
+        expect(mockLogger.info).toHaveBeenCalledWith('署名完了');
+        expect(mockLogger.info).toHaveBeenCalledWith('トランザクションのブロードキャストを開始...');
+        expect(mockLogger.info).toHaveBeenCalledWith('トランザクションのマイニング完了を待機中...');
       });
     });
 
@@ -645,9 +645,8 @@ describe('transactionProcessor', () => {
         setLogger(mockLogger);
         const result = await processTransaction({ privateKey: validPrivateKey, txParams: validTxParams, broadcast: false });
         expect(result.signedTransaction).toBe(validSignedTx);
-        const infoCalls = (mockLogger.info as ReturnType<typeof vi.fn>).mock.calls.flat();
-        expect(infoCalls).toContain('トランザクションの署名を開始...');
-        expect(infoCalls).toContain('署名完了');
+        expect(mockLogger.info).toHaveBeenCalledWith('トランザクションの署名を開始...');
+        expect(mockLogger.info).toHaveBeenCalledWith('署名完了');
       });
     });
 
@@ -825,10 +824,10 @@ describe('transactionProcessor internal helper functions', () => {
     expect(mockLogger.error).toHaveBeenCalledWith(
       'レシート取得エラー（トランザクションは送信済み）: some error'
     );
-    const calls = (mockLogger.error as ReturnType<typeof vi.fn>).mock.calls.flat();
-    expect(calls.filter((call: string) => call.includes('エクスプローラーURL'))).toHaveLength(0);
+    expect(mockLogger.error).toHaveBeenCalledTimes(1);
+    expect(mockLogger.error).not.toHaveBeenCalledWith(expect.stringContaining('エクスプローラーURL'));
   });
-});
+  });
 
 describe('handleTransactionReceipt', () => {
   const validRpcUrl = 'http://localhost:8545';
