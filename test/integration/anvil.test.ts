@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process';
  * Anvilが利用可能かをチェック
  * @returns Anvilが利用可能な場合はtrue
  */
-async function isAnvilAvailable(): Promise<boolean> {
+function isAnvilAvailable(): Promise<boolean> {
   return new Promise((resolve) => {
     const child = spawn('anvil', ['--version'], { stdio: 'pipe' });
 
@@ -39,9 +39,7 @@ describe('Anvil Integration Tests', () => {
         expect(anvilAvailable).toBe(true);
       } else {
         console.info('Anvil is not available, skipping integration tests');
-        console.info(
-          'Install with: curl -L https://foundry.paradigm.xyz | bash && foundryup'
-        );
+        console.info('Install with: curl -L https://foundry.paradigm.xyz | bash && foundryup');
         expect(anvilAvailable).toBe(false);
       }
     });

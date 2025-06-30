@@ -55,7 +55,7 @@ export async function teardown(): Promise<void> {
 /**
  * Anvilのインストール確認
  */
-async function checkAnvilInstallation(): Promise<void> {
+function checkAnvilInstallation(): Promise<void> {
   return new Promise((resolve, reject) => {
     const { spawn } = require('node:child_process');
     const child = spawn('anvil', ['--version'], { stdio: 'pipe' });
