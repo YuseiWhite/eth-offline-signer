@@ -1,5 +1,9 @@
-import { createPublicClient, http } from 'viem';
-import type { Hex } from 'viem';
+import {
+  createPublicClient,
+  http,
+  type Hex,
+  type TransactionReceipt,
+} from 'viem';
 import { broadcastTransaction } from './broadcaster';
 import { executeWithNonceRetry, type NonceRetrySuccessResult } from './nonceRetry';
 import { signEIP1559TransactionOffline } from './signer';
@@ -88,7 +92,7 @@ function getChainConfig(chainId: number) {
  */
 function logTransactionSuccess(
   retryResult: NonceRetrySuccessResult,
-  receipt: { blockNumber: bigint; gasUsed: bigint },
+  receipt: Pick<TransactionReceipt, 'blockNumber' | 'gasUsed'>,
   logger: Logger
 ): void {
   logger.info(`ブロック番号: ${receipt.blockNumber}`.trim());
