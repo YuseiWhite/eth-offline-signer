@@ -108,7 +108,7 @@ function handleCliError(error: Error): void {
   }
 
   if (error.name === 'FileAccessError') {
-    console.error(`📁 ファイルアクセスエラー: ${error.message}`);
+    console.error(`ファイルアクセスエラー: ${error.message}`);
     return;
   }
 
@@ -123,7 +123,7 @@ function handleCliError(error: Error): void {
   }
 
   // 予期しないエラー
-  console.error(`💥 予期しないエラーが発生しました: ${error.message}`);
+  console.error(`予期しないエラーが発生しました: ${error.message}`);
 }
 
 /**
