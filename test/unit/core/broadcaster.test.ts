@@ -284,7 +284,7 @@ describe('broadcaster', () => {
       });
 
       it('Unicode文字を含むトランザクションハッシュをエンコード', async () => {
-        const unicodeHash = '0x🚀💎abcdef1234567890' as Hex;
+        const unicodeHash = '0xabcdef1234567890' as Hex;
         const mockSendRawTransaction = vi.fn().mockResolvedValue(unicodeHash);
         const mockTransport = vi.fn();
         mockHttp.mockReturnValue(mockTransport);

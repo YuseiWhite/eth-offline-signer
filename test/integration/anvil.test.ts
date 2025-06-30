@@ -35,10 +35,10 @@ describe('Anvil Integration Tests', () => {
   describe('Anvil Availability', () => {
     it('should detect Anvil availability', () => {
       if (anvilAvailable) {
-        console.info('✅ Anvil is available for integration tests');
+        console.info(' Anvil is available for integration tests');
         expect(anvilAvailable).toBe(true);
       } else {
-        console.info('⚠️ Anvil is not available, skipping integration tests');
+        console.info(' Anvil is not available, skipping integration tests');
         expect(anvilAvailable).toBe(false);
       }
     });
