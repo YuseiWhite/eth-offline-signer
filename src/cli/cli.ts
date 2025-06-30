@@ -20,6 +20,15 @@ function toError(error: unknown): Error {
 }
 
 /**
+ * ケバブケースに変換
+ * @param str 変換する文字列
+ * @returns ケバブケースに変換された文字列
+ */
+function toKebabCase(str: string): string {
+  return str.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, '$1-$2').toLowerCase();
+}
+
+/**
  * CLIオプションバリデーションエラーのハンドリング
  * @param zodError ZodErrorオブジェクト
  * @description ユーザーフレンドリーなエラーメッセージを表示
@@ -55,18 +64,25 @@ function handleCliValidationError(zodError: ZodError): void {
   }
 
   // --broadcastオプション使用時のrpcUrlエラー
-  const rpcUrlError = errors.find(e => e.path.includes('rpcUrl'));
-  if (rpcUrlError) {
+  const rpcUrlRefineError = errors.find(
+    (e) => e.path.includes('rpcUrl') && e.code === 'custom'
+  );
+  if (rpcUrlRefineError) {
     console.error('--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります');
     console.error('');
-    console.error('使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json --broadcast --rpc-url https://eth-<network>.g.alchemy.com/v2/<YOUR_API_KEY>');
+    console.error('使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json --broadcast --rpc-url https://eth-<network>.g.alchemy.com/v/<YOUR_API_KEY>');
     return;
   }
 
   // その他のバリデーションエラー
   for (const error of errors) {
+    // refineによるカスタムエラーは上で処理済みのためスキップ
+    if (error.code === 'custom') {
+      continue;
+    }
     const field = error.path.join('.');
-    console.error(`${field}: ${error.message}`);
+    const optionName = toKebabCase(field);
+    console.error(`--${optionName}: ${error.message}`);
   }
 }
 
@@ -195,7 +211,6 @@ program.exitOverride((err) => {
   process.exit(1);
 });
 
-// only execute parsing when run as a script
 if (require.main === module) {
   program.parse();
 }
