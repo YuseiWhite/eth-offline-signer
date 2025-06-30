@@ -30,8 +30,8 @@ vi.mock('viem', async () => {
   const actual = await vi.importActual('viem');
   return {
     ...actual,
-    createPublicClient: vi.fn(),
-    http: vi.fn(),
+  createPublicClient: vi.fn(),
+  http: vi.fn(),
   };
 });
 
@@ -841,7 +841,7 @@ describe('handleTransactionReceipt', () => {
   const validTxParams: EIP1559TxParams = {
     to: '0x742d35Cc6634C0532925a3b8D4C9db7C9c0c7a8A',
     value: '0',
-    gasLimit: '21000',
+      gasLimit: '21000',
     maxFeePerGas: '20000000000',
     maxPriorityFeePerGas: '1000000000',
     nonce: 1,
@@ -893,12 +893,12 @@ describe('handleTransactionReceipt', () => {
   });
 
   it('should create error result and log correctly on receipt failure', async () => {
-    const dummyRetrySuccessResult = {
+  const dummyRetrySuccessResult = {
       success: true,
-      transactionHash: validTxHash,
+    transactionHash: validTxHash,
       explorerUrl: 'https://etherscan.io/tx/0xhash',
       finalNonce: 1,
-      retryCount: 0,
+    retryCount: 0,
     } as NonceRetrySuccessResult;
     const error = new Error('Receipt retrieval failed');
     mockPublicClient.waitForTransactionReceipt.mockRejectedValue(error);
