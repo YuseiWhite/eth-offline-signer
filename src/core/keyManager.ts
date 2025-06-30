@@ -32,8 +32,8 @@ async function validateFileAccess(filePath: string): Promise<void> {
         const currentPerm = mode.toString(8).padStart(3, '0');
         logger.warn(
           `秘密鍵ファイルのパーミッションが安全ではありません。` +
-          `現在: ${currentPerm}, 推奨: 400。` +
-          `\n   修正方法: chmod 400 ${filePath}`
+            `現在: ${currentPerm}, 推奨: 400。` +
+            `\n   修正方法: chmod 400 ${filePath}`
         );
       }
     } else {

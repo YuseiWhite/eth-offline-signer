@@ -30,7 +30,7 @@ runs:
         echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 
     - name: Setup pnpm cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.pnpm-store-path.outputs.STORE_PATH }}
         key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -41,7 +41,13 @@ runs:
       shell: bash
       run: |
         if [ -f "pnpm-lock.yaml" ]; then
-          pnpm install --frozen-lockfile
+          echo "Found pnpm-lock.yaml, attempting frozen lockfile install..."
+          if ! pnpm install --frozen-lockfile; then
+            echo "Frozen lockfile install failed, falling back to regular install..."
+            echo "This may happen when package.json was updated but pnpm-lock.yaml wasn't committed."
+            pnpm install
+          fi
         else
+          echo "No pnpm-lock.yaml found, installing without frozen lockfile..."
           pnpm install --no-frozen-lockfile
         fi

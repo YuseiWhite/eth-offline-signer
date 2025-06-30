@@ -1,8 +1,6 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
-  "organizeImports": {
-    "enabled": true
-  },
+  "$schema": "https://biomejs.dev/schemas/2.0.6/schema.json",
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
     "enabled": true,
     "rules": {
@@ -15,7 +13,6 @@
           }
         },
         "noExtraBooleanCast": "error",
-        "noMultipleSpacesInRegularExpressionLiterals": "error",
         "noUselessCatch": "error",
         "noUselessConstructor": "error",
         "noUselessLoneBlockStatements": "error",
@@ -23,11 +20,15 @@
         "noUselessSwitchCase": "error",
         "noUselessTernary": "error",
         "noUselessTypeConstraint": "error",
-        "noWith": "error",
         "useLiteralKeys": "error",
         "useOptionalChain": "error",
         "useRegexLiterals": "error",
-        "noForEach": "error"
+        "noForEach": "error",
+        "noAdjacentSpacesInRegex": "error",
+        "noUselessContinue": "off",
+        "noArguments": "error",
+        "noCommaOperator": "error",
+        "useNumericLiterals": "error"
       },
       "correctness": {
         "noChildrenProp": "error",
@@ -38,7 +39,6 @@
         "noEmptyPattern": "error",
         "noGlobalObjectCalls": "error",
         "noInvalidConstructorSuper": "error",
-        "noInvalidNewBuiltin": "error",
         "noNonoctalDecimalEscape": "error",
         "noPrecisionLoss": "error",
         "noSelfAssign": "error",
@@ -54,15 +54,14 @@
         "useIsNan": "error",
         "useValidForDirection": "error",
         "useYield": "error",
-        "noUnnecessaryContinue": "off"
+        "noInvalidBuiltinInstantiation": "error",
+        "useValidTypeof": "error"
       },
       "security": {
         "noDangerouslySetInnerHtml": "error",
         "noGlobalEval": "error"
       },
       "style": {
-        "noArguments": "error",
-        "noCommaOperator": "error",
         "noDefaultExport": "error",
         "noImplicitBoolean": "error",
         "noInferrableTypes": "error",
@@ -75,7 +74,6 @@
         "noShoutyConstants": "error",
         "noUnusedTemplateLiteral": "off",
         "noUselessElse": "off",
-        "noVar": "error",
         "useAsConstAssertion": "error",
         "useBlockStatements": "error",
         "useCollapsedElseIf": "error",
@@ -113,13 +111,12 @@
         },
         "useNodejsImportProtocol": "error",
         "useNumberNamespace": "error",
-        "useNumericLiterals": "error",
         "useSelfClosingElements": "error",
-        "useShorthandArrayType": "error",
         "useShorthandAssign": "error",
         "useSingleVarDeclarator": "error",
         "useTemplate": "off",
-        "useImportType": "error"
+        "useImportType": "error",
+        "useConsistentArrayType": { "level": "error", "options": { "syntax": "shorthand" } }
       },
       "suspicious": {
         "noApproximativeNumericConstant": "error",
@@ -132,7 +129,6 @@
         "noCompareNegZero": "error",
         "noConfusingLabels": "error",
         "noConfusingVoidType": "error",
-        "noConsoleLog": "error",
         "noConstEnum": "error",
         "noControlCharactersInRegex": "error",
         "noDebugger": "error",
@@ -163,7 +159,9 @@
         "useDefaultSwitchClauseLast": "error",
         "useGetterReturn": "error",
         "useNamespaceKeyword": "error",
-        "useValidTypeof": "error"
+        "noWith": "error",
+        "noVar": "error",
+        "noConsole": { "level": "error", "options": { "allow": ["log"] } }
       }
     }
   },
@@ -200,20 +198,24 @@
     }
   },
   "files": {
-    "include": ["src/**/*.ts", "test/**/*.ts", "*.ts", "*.js", "*.json"],
-    "ignore": [
-      "node_modules/**",
-      "dist/**",
-      "bin/**",
-      "coverage/**",
-      ".git/**",
-      "pnpm-lock.yaml",
-      ".stryker-tmp/**"
+    "includes": [
+      "**/src/**/*.ts",
+      "**/test/**/*.ts",
+      "**/*.ts",
+      "**/*.js",
+      "**/*.json",
+      "!**/node_modules/**",
+      "!**/dist/**",
+      "!**/bin/**",
+      "!**/coverage/**",
+      "!**/.git/**",
+      "!**/pnpm-lock.yaml",
+      "!**/.stryker-tmp/**"
     ]
   },
   "overrides": [
     {
-      "include": ["vitest.config.ts", "tsup.config.ts"],
+      "includes": ["**/vitest.config.ts", "**/tsup.config.ts"],
       "linter": {
         "rules": {
           "style": {
@@ -223,12 +225,24 @@
       }
     },
     {
-      "include": ["test/**/*.ts"],
+      "includes": ["**/src/cli/**/*.ts", "**/src/utils/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    },
+
+    {
+      "includes": ["**/test/**/*.ts"],
       "linter": {
         "rules": {
           "suspicious": {
             "noRedeclare": "off",
-            "noExplicitAny": "off"
+            "noExplicitAny": "off",
+            "noConsole": "off"
           },
           "style": {
             "noNonNullAssertion": "off"

@@ -2,7 +2,7 @@
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { program } from 'commander';
+import { Command } from 'commander';
 import { ZodError } from 'zod';
 import { runCli } from '../core/app';
 
@@ -36,8 +36,8 @@ function toKebabCase(str: string): string {
 function handleCliValidationError(zodError: ZodError): void {
   const errors = zodError.errors;
 
-  const missingKeyFile = errors.some(e => e.path.includes('keyFile'));
-  const missingParams = errors.some(e => e.path.includes('params'));
+  const missingKeyFile = errors.some((e) => e.path.includes('keyFile'));
+  const missingParams = errors.some((e) => e.path.includes('params'));
 
   // keyFileとparamsの両方が不足している場合
   if (missingKeyFile && missingParams) {
@@ -45,7 +45,9 @@ function handleCliValidationError(zodError: ZodError): void {
     console.error('   --key-file: 秘密鍵ファイル（.key拡張子）のパスを指定してください');
     console.error('   --params: トランザクションパラメータJSONファイルのパスを指定してください');
     console.error('');
-    console.error('使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json');
+    console.error(
+      '使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json'
+    );
     return;
   }
 
@@ -64,13 +66,15 @@ function handleCliValidationError(zodError: ZodError): void {
   }
 
   // --broadcastオプション使用時のrpcUrlエラー
-  const rpcUrlRefineError = errors.find(
-    (e) => e.path.includes('rpcUrl') && e.code === 'custom'
-  );
+  const rpcUrlRefineError = errors.find((e) => e.path.includes('rpcUrl') && e.code === 'custom');
   if (rpcUrlRefineError) {
-    console.error('--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります');
+    console.error(
+      '--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります'
+    );
     console.error('');
-    console.error('使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json --broadcast --rpc-url https://eth-<network>.g.alchemy.com/v/<YOUR_API_KEY>');
+    console.error(
+      '使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json --broadcast --rpc-url https://eth-<network>.g.alchemy.com/v/<YOUR_API_KEY>'
+    );
     return;
   }
 
@@ -162,58 +166,74 @@ function getPackageVersion(packagePathsToTry?: string[]): string {
   return defaultVersion;
 }
 
-const packageVersion = getPackageVersion();
+/**
+ * 新しいCLIプログラムインスタンスを作成・設定
+ * @description テスト環境での重複登録を防ぐため、毎回新しいインスタンスを作成
+ */
+function createProgram(): Command {
+  const program = new Command();
 
-program.version(packageVersion, '-v, --version', '現在のバージョンを出力します');
-
-program
-  .command('sign')
-  .description('Ethereumトランザクションをオフラインで署名し、オプションでブロードキャストします。')
-  .option('-k, --key-file <path>', '秘密鍵が含まれるファイルへのパス。')
-  .option('-p, --params <path>', 'トランザクションパラメータが含まれるJSONファイルへのパス。')
-  .option('--broadcast', 'トランザクションをネットワークにブロードキャストします。')
-  .option('--rpc-url <url>', 'カスタムRPCエンドポイントのURL。')
-  .option('-q, --quiet', '署名済みトランザクションデータまたはトランザクションハッシュのみ出力します。')
-  .allowUnknownOption(false)
-  .action(
-    /**
-     * signコマンドのメイン処理
-     * @param options CLIオプション
-     * @description core層のrunCliを呼び出し、エラーハンドリングのみを担当
-     */
-    async (options: {
-      keyFile?: string;
-      params?: string;
-      broadcast?: boolean;
-      rpcUrl?: string;
-      quiet?: boolean;
-    }) => {
-      try {
-        // core層の唯一の窓口であるrunCliを呼び出す
-        await runCli(options);
-      } catch (error: unknown) {
-        // core層からスローされたエラーをここで受け取り、表示に徹する
-        handleCliError(toError(error));
-        process.exit(1); // エラー発生時は非ゼロの終了コードでプロセスを終了する
+  program
+    .command('sign')
+    .description(
+      'Ethereumトランザクションをオフラインで署名し、オプションでブロードキャストします。'
+    )
+    .option('-k, --key-file <path>', '秘密鍵が含まれるファイルへのパス。')
+    .option('-p, --params <path>', 'トランザクションパラメータが含まれるJSONファイルへのパス。')
+    .option('--broadcast', 'トランザクションをネットワークにブロードキャストします。')
+    .option('--rpc-url <url>', 'カスタムRPCエンドポイントのURL。')
+    .option(
+      '-q, --quiet',
+      '署名済みトランザクションデータまたはトランザクションハッシュのみ出力します。'
+    )
+    .allowUnknownOption(false)
+    .action(
+      /**
+       * signコマンドのメイン処理
+       * @param options CLIオプション
+       * @description core層のrunCliを呼び出し、エラーハンドリングのみを担当
+       */
+      async (options: {
+        keyFile?: string;
+        params?: string;
+        broadcast?: boolean;
+        rpcUrl?: string;
+        quiet?: boolean;
+      }) => {
+        try {
+          // core層の唯一の窓口であるrunCliを呼び出す
+          await runCli(options);
+        } catch (error: unknown) {
+          // core層からスローされたエラーをここで受け取り、表示に徹する
+          handleCliError(toError(error));
+          process.exit(1); // エラー発生時は非ゼロの終了コードでプロセスを終了する
+        }
       }
-    }
-  );
+    );
 
-// エラーイベントのハンドリング
-program.exitOverride((err) => {
-  if (err.code === 'commander.helpDisplayed') {
-    process.exit(0);
-  }
-  if (err.code === 'commander.version') {
-    process.exit(0);
-  }
-  handleCliError(new Error(`CLIコマンドエラー: ${err.message}`));
-  process.exit(1);
-});
+  program.version(getPackageVersion(), '-v, --version', '現在のバージョンを出力します');
+
+  // エラーイベントのハンドリング
+  program.exitOverride((err: { code: string; message: string }) => {
+    if (err.code === 'commander.helpDisplayed') {
+      process.exit(0);
+    }
+    if (err.code === 'commander.version') {
+      process.exit(0);
+    }
+    handleCliError(new Error(`CLIコマンドエラー: ${err.message}`));
+    process.exit(1);
+  });
+
+  return program;
+}
+
+// メインプログラムインスタンス（製品実行時用）
+const program = createProgram();
 
 if (require.main === module) {
   program.parse();
 }
 
 // export for testing
-export { toError, handleCliError, getPackageVersion, program };
+export { toError, handleCliError, getPackageVersion, createProgram, program };

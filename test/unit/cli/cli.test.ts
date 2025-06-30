@@ -85,9 +85,7 @@ describe('CLI Module', () => {
 
       handleCliError(error);
 
-      expect(mockConsoleError).toHaveBeenCalledWith(
-        '秘密鍵エラー: private key error'
-      );
+      expect(mockConsoleError).toHaveBeenCalledWith('秘密鍵エラー: private key error');
     });
 
     it('should handle FileAccessError', async () => {
@@ -126,17 +124,35 @@ describe('CLI Module', () => {
       const { ZodError } = await import('zod');
 
       const zodError = new ZodError([
-        { code: 'invalid_type', expected: 'string', received: 'undefined', path: ['keyFile'], message: 'Required' },
-        { code: 'invalid_type', expected: 'string', received: 'undefined', path: ['params'], message: 'Required' }
+        {
+          code: 'invalid_type',
+          expected: 'string',
+          received: 'undefined',
+          path: ['keyFile'],
+          message: 'Required',
+        },
+        {
+          code: 'invalid_type',
+          expected: 'string',
+          received: 'undefined',
+          path: ['params'],
+          message: 'Required',
+        },
       ]);
 
       handleCliError(zodError);
 
       expect(mockConsoleError).toHaveBeenCalledWith('必須オプションが不足しています:');
-      expect(mockConsoleError).toHaveBeenCalledWith('   --key-file: 秘密鍵ファイル（.key拡張子）のパスを指定してください');
-      expect(mockConsoleError).toHaveBeenCalledWith('   --params: トランザクションパラメータJSONファイルのパスを指定してください');
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        '   --key-file: 秘密鍵ファイル（.key拡張子）のパスを指定してください'
+      );
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        '   --params: トランザクションパラメータJSONファイルのパスを指定してください'
+      );
       expect(mockConsoleError).toHaveBeenCalledWith('');
-      expect(mockConsoleError).toHaveBeenCalledWith('使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json');
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        '使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json'
+      );
     });
 
     it('should handle ZodError with missing keyFile only', async () => {
@@ -144,13 +160,21 @@ describe('CLI Module', () => {
       const { ZodError } = await import('zod');
 
       const zodError = new ZodError([
-        { code: 'invalid_type', expected: 'string', received: 'undefined', path: ['keyFile'], message: 'Required' }
+        {
+          code: 'invalid_type',
+          expected: 'string',
+          received: 'undefined',
+          path: ['keyFile'],
+          message: 'Required',
+        },
       ]);
 
       handleCliError(zodError);
 
       expect(mockConsoleError).toHaveBeenCalledWith('--key-fileオプションが必要です');
-      expect(mockConsoleError).toHaveBeenCalledWith('   秘密鍵ファイル（.key拡張子）のパスを指定してください');
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        '   秘密鍵ファイル（.key拡張子）のパスを指定してください'
+      );
     });
 
     it('should handle ZodError with missing params only', async () => {
@@ -158,13 +182,21 @@ describe('CLI Module', () => {
       const { ZodError } = await import('zod');
 
       const zodError = new ZodError([
-        { code: 'invalid_type', expected: 'string', received: 'undefined', path: ['params'], message: 'Required' }
+        {
+          code: 'invalid_type',
+          expected: 'string',
+          received: 'undefined',
+          path: ['params'],
+          message: 'Required',
+        },
       ]);
 
       handleCliError(zodError);
 
       expect(mockConsoleError).toHaveBeenCalledWith('--paramsオプションが必要です');
-      expect(mockConsoleError).toHaveBeenCalledWith('   トランザクションパラメータJSONファイルのパスを指定してください');
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        '   トランザクションパラメータJSONファイルのパスを指定してください'
+      );
     });
 
     it('should handle ZodError with rpcUrl validation error', async () => {
@@ -174,16 +206,21 @@ describe('CLI Module', () => {
       const zodError = new ZodError([
         {
           code: 'custom',
-          message: '--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります。',
-          path: ['rpcUrl']
-        }
+          message:
+            '--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります。',
+          path: ['rpcUrl'],
+        },
       ]);
 
       handleCliError(zodError);
 
-      expect(mockConsoleError).toHaveBeenCalledWith('--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります');
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        '--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります'
+      );
       expect(mockConsoleError).toHaveBeenCalledWith('');
-      expect(mockConsoleError).toHaveBeenCalledWith('使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json --broadcast --rpc-url https://eth-<network>.g.alchemy.com/v/<YOUR_API_KEY>');
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        '使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json --broadcast --rpc-url https://eth-<network>.g.alchemy.com/v/<YOUR_API_KEY>'
+      );
     });
 
     it('should handle ZodError with other validation errors', async () => {
@@ -191,7 +228,13 @@ describe('CLI Module', () => {
       const { ZodError } = await import('zod');
 
       const zodError = new ZodError([
-        { code: 'invalid_type', expected: 'string', received: 'undefined', path: ['customField'], message: 'カスタムエラーメッセージ' }
+        {
+          code: 'invalid_type',
+          expected: 'string',
+          received: 'undefined',
+          path: ['customField'],
+          message: 'カスタムエラーメッセージ',
+        },
       ]);
 
       handleCliError(zodError);
@@ -220,9 +263,7 @@ describe('CLI Module', () => {
 
       handleCliError(zodError);
 
-      expect(mockConsoleError).toHaveBeenCalledWith(
-        '--another-field: This should be displayed'
-      );
+      expect(mockConsoleError).toHaveBeenCalledWith('--another-field: This should be displayed');
       expect(mockConsoleError).not.toHaveBeenCalledWith(
         expect.stringContaining('This should be skipped')
       );
@@ -259,8 +300,9 @@ describe('CLI Module', () => {
 
   describe('CLI command parsing', () => {
     it('should execute runCli with correct options for sign command', async () => {
-      const { program } = await import('../../../src/cli/cli.js');
+      const { createProgram } = await import('../../../src/cli/cli.js');
       const { runCli } = await import('../../../src/core/app.js');
+      const program = createProgram();
       vi.mocked(runCli).mockResolvedValueOnce(undefined);
 
       await program.parseAsync([
@@ -278,8 +320,9 @@ describe('CLI Module', () => {
     });
 
     it('should handle InvalidInputError and exit with code 1', async () => {
-      const { program } = await import('../../../src/cli/cli.js');
+      const { createProgram } = await import('../../../src/cli/cli.js');
       const { runCli } = await import('../../../src/core/app.js');
+      const program = createProgram();
       const error = new Error('missing params');
       error.name = 'InvalidInputError';
       vi.mocked(runCli).mockRejectedValueOnce(error);
@@ -291,19 +334,22 @@ describe('CLI Module', () => {
     });
 
     it('should display help and exit with code 0', async () => {
-      const { program } = await import('../../../src/cli/cli.js');
+      const { createProgram } = await import('../../../src/cli/cli.js');
+      const program = createProgram();
       await program.parseAsync(['node', 'test', '--help']);
       expect(process.exit).toHaveBeenCalledWith(0);
     });
 
     it('should display version and exit with code 0', async () => {
-      const { program } = await import('../../../src/cli/cli.js');
+      const { createProgram } = await import('../../../src/cli/cli.js');
+      const program = createProgram();
       await program.parseAsync(['node', 'test', '--version']);
       expect(process.exit).toHaveBeenCalledWith(0);
     });
 
     it('should handle unknown command and exit with code 1', async () => {
-      const { program } = await import('../../../src/cli/cli.js');
+      const { createProgram } = await import('../../../src/cli/cli.js');
+      const program = createProgram();
 
       await program.parseAsync(['node', 'test', 'foobar']);
 
@@ -312,7 +358,8 @@ describe('CLI Module', () => {
     });
 
     it('should handle unknown option and exit with code 1', async () => {
-      const { program } = await import('../../../src/cli/cli.js');
+      const { createProgram } = await import('../../../src/cli/cli.js');
+      const program = createProgram();
 
       await program.parseAsync([
         'node',
@@ -329,8 +376,9 @@ describe('CLI Module', () => {
     });
 
     it('should handle PrivateKeyError and exit with code 1', async () => {
-      const { program } = await import('../../../src/cli/cli.js');
+      const { createProgram } = await import('../../../src/cli/cli.js');
       const { runCli } = await import('../../../src/core/app.js');
+      const program = createProgram();
       const error = new Error('private key failure');
       error.name = 'PrivateKeyError';
       vi.mocked(runCli).mockRejectedValueOnce(error);
@@ -350,8 +398,9 @@ describe('CLI Module', () => {
     });
 
     it('should handle FileAccessError and exit with code 1', async () => {
-      const { program } = await import('../../../src/cli/cli.js');
+      const { createProgram } = await import('../../../src/cli/cli.js');
       const { runCli } = await import('../../../src/core/app.js');
+      const program = createProgram();
       const error = new Error('file access failure');
       error.name = 'FileAccessError';
       vi.mocked(runCli).mockRejectedValueOnce(error);
@@ -371,8 +420,9 @@ describe('CLI Module', () => {
     });
 
     it('should handle NetworkError and exit with code 1', async () => {
-      const { program } = await import('../../../src/cli/cli.js');
+      const { createProgram } = await import('../../../src/cli/cli.js');
       const { runCli } = await import('../../../src/core/app.js');
+      const program = createProgram();
       const error = new Error('network failure');
       error.name = 'NetworkError';
       vi.mocked(runCli).mockRejectedValueOnce(error);
@@ -392,8 +442,9 @@ describe('CLI Module', () => {
     });
 
     it('should handle BroadcastError and exit with code 1', async () => {
-      const { program } = await import('../../../src/cli/cli.js');
+      const { createProgram } = await import('../../../src/cli/cli.js');
       const { runCli } = await import('../../../src/core/app.js');
+      const program = createProgram();
       const error = new Error('broadcast failure');
       error.name = 'BroadcastError';
       vi.mocked(runCli).mockRejectedValueOnce(error);
@@ -413,13 +464,26 @@ describe('CLI Module', () => {
     });
 
     it('should handle ZodError from runCli and display user-friendly messages', async () => {
-      const { program } = await import('../../../src/cli/cli.js');
+      const { createProgram } = await import('../../../src/cli/cli.js');
       const { runCli } = await import('../../../src/core/app.js');
       const { ZodError } = await import('zod');
+      const program = createProgram();
 
       const zodError = new ZodError([
-        { code: 'invalid_type', expected: 'string', received: 'undefined', path: ['keyFile'], message: 'Required' },
-        { code: 'invalid_type', expected: 'string', received: 'undefined', path: ['params'], message: 'Required' }
+        {
+          code: 'invalid_type',
+          expected: 'string',
+          received: 'undefined',
+          path: ['keyFile'],
+          message: 'Required',
+        },
+        {
+          code: 'invalid_type',
+          expected: 'string',
+          received: 'undefined',
+          path: ['params'],
+          message: 'Required',
+        },
       ]);
 
       vi.mocked(runCli).mockRejectedValueOnce(zodError);
@@ -427,23 +491,31 @@ describe('CLI Module', () => {
       await program.parseAsync(['node', 'test', 'sign']);
 
       expect(console.error).toHaveBeenCalledWith('必須オプションが不足しています:');
-      expect(console.error).toHaveBeenCalledWith('   --key-file: 秘密鍵ファイル（.key拡張子）のパスを指定してください');
-      expect(console.error).toHaveBeenCalledWith('   --params: トランザクションパラメータJSONファイルのパスを指定してください');
-      expect(console.error).toHaveBeenCalledWith('使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json');
+      expect(console.error).toHaveBeenCalledWith(
+        '   --key-file: 秘密鍵ファイル（.key拡張子）のパスを指定してください'
+      );
+      expect(console.error).toHaveBeenCalledWith(
+        '   --params: トランザクションパラメータJSONファイルのパスを指定してください'
+      );
+      expect(console.error).toHaveBeenCalledWith(
+        '使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json'
+      );
       expect(process.exit).toHaveBeenCalledWith(1);
     });
 
     it('should handle ZodError from runCli for broadcast validation', async () => {
-      const { program } = await import('../../../src/cli/cli.js');
+      const { createProgram } = await import('../../../src/cli/cli.js');
       const { runCli } = await import('../../../src/core/app.js');
       const { ZodError } = await import('zod');
+      const program = createProgram();
 
       const zodError = new ZodError([
         {
           code: 'custom',
-          message: '--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります。',
-          path: ['rpcUrl']
-        }
+          message:
+            '--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります。',
+          path: ['rpcUrl'],
+        },
       ]);
 
       vi.mocked(runCli).mockRejectedValueOnce(zodError);
@@ -456,18 +528,22 @@ describe('CLI Module', () => {
         'key.pem',
         '--params',
         'params.json',
-        '--broadcast'
+        '--broadcast',
       ]);
 
-      expect(mockConsoleError).toHaveBeenCalledWith('--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります');
-      expect(mockConsoleError).toHaveBeenCalledWith('');
-      expect(mockConsoleError).toHaveBeenCalledWith('使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json --broadcast --rpc-url https://eth-<network>.g.alchemy.com/v/<YOUR_API_KEY>');
+      expect(console.error).toHaveBeenCalledWith(
+        '--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります'
+      );
+      expect(console.error).toHaveBeenCalledWith('');
+      expect(console.error).toHaveBeenCalledWith(
+        '使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json --broadcast --rpc-url https://eth-<network>.g.alchemy.com/v/<YOUR_API_KEY>'
+      );
       expect(process.exit).toHaveBeenCalledWith(1);
     });
   });
 
   describe('CLI program exit override', () => {
-    it('should test exit override function directly', async () => {
+    it('should test exit override function directly', () => {
       const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
       const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 

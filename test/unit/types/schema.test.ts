@@ -10,7 +10,6 @@ import {
   NumericStringSchema,
   AccessListItemSchema,
   EIP1559TxParamsSchema,
-
   TransactionHashSchema,
   RawPrivateKeySchema,
   FilePathSchema,
@@ -944,7 +943,9 @@ describe('Additional Negative Tests for Schema', () => {
       const resultZero = ChainIdSchema.safeParse(0);
       expect(resultZero.success).toBe(false);
       if (!resultZero.success) {
-        expect(resultZero.error.errors[0]!.message).toBe('チェーンIDは正の整数である必要があります');
+        expect(resultZero.error.errors[0]!.message).toBe(
+          'チェーンIDは正の整数である必要があります'
+        );
       }
       const resultNegative = ChainIdSchema.safeParse(-5);
       expect(resultNegative.success).toBe(false);

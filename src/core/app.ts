@@ -98,7 +98,9 @@ export async function runCli(rawOptions: unknown) {
 
       if (!options.quiet) {
         if (result.broadcast.status === 'SUCCESS') {
-          logger.info('トランザクションは成功しました。トランザクションハッシュを標準出力しました。');
+          logger.info(
+            'トランザクションは成功しました。トランザクションハッシュを標準出力しました。'
+          );
         } else if (result.broadcast.status === 'BROADCASTED_BUT_UNCONFIRMED') {
           logger.warn(
             'トランザクションはブロードキャストされましたが確認できませんでした。トランザクションハッシュを標準出力しました。'
