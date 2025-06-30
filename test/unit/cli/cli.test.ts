@@ -97,7 +97,7 @@ describe('CLI Module', () => {
 
       handleCliError(error);
 
-      expect(mockConsoleError).toHaveBeenCalledWith('📁 ファイルアクセスエラー: file access error');
+      expect(mockConsoleError).toHaveBeenCalledWith('ファイルアクセスエラー: file access error');
     });
 
     it('should handle BroadcastError', async () => {
@@ -117,7 +117,7 @@ describe('CLI Module', () => {
       handleCliError(error);
 
       expect(mockConsoleError).toHaveBeenCalledWith(
-        '💥 予期しないエラーが発生しました: general error'
+        '予期しないエラーが発生しました: general error'
       );
     });
 
@@ -366,7 +366,7 @@ describe('CLI Module', () => {
         'params.json',
       ]);
 
-      expect(console.error).toHaveBeenCalledWith('📁 ファイルアクセスエラー: file access failure');
+      expect(console.error).toHaveBeenCalledWith('ファイルアクセスエラー: file access failure');
       expect(process.exit).toHaveBeenCalledWith(1);
     });
 
