@@ -30,8 +30,8 @@ vi.mock('viem', async () => {
   const actual = await vi.importActual('viem');
   return {
     ...actual,
-  createPublicClient: vi.fn(),
-  http: vi.fn(),
+    createPublicClient: vi.fn(),
+    http: vi.fn(),
   };
 });
 
@@ -44,7 +44,6 @@ import { executeWithNonceRetry } from '../../../src/core/nonceRetry';
 import type { NonceRetrySuccessResult } from '../../../src/core/nonceRetry';
 import { broadcastTransaction } from '../../../src/core/broadcaster';
 import { getNetworkConfig } from '../../../src/core/networkConfig';
-
 
 const mockSignEIP1559TransactionOffline = vi.mocked(signEIP1559TransactionOffline);
 const mockExecuteWithNonceRetry = vi.mocked(executeWithNonceRetry);
@@ -578,7 +577,9 @@ describe('transactionProcessor', () => {
 
         expect(mockLogger.info).toHaveBeenCalledWith('トランザクションの署名を開始...');
         expect(mockLogger.info).toHaveBeenCalledWith('署名完了');
-        expect(mockLogger.info).toHaveBeenCalledWith('オフライン署名のみ完了しました。ブロードキャストはスキップされます。');
+        expect(mockLogger.info).toHaveBeenCalledWith(
+          'オフライン署名のみ完了しました。ブロードキャストはスキップされます。'
+        );
         expect(mockLogger.info).toHaveBeenCalledTimes(3);
       });
 
@@ -643,7 +644,11 @@ describe('transactionProcessor', () => {
     describe('should use custom logger when set via setLogger', () => {
       it('should use custom logger when set via setLogger', async () => {
         setLogger(mockLogger);
-        const result = await processTransaction({ privateKey: validPrivateKey, txParams: validTxParams, broadcast: false });
+        const result = await processTransaction({
+          privateKey: validPrivateKey,
+          txParams: validTxParams,
+          broadcast: false,
+        });
         expect(result.signedTransaction).toBe(validSignedTx);
         expect(mockLogger.info).toHaveBeenCalledWith('トランザクションの署名を開始...');
         expect(mockLogger.info).toHaveBeenCalledWith('署名完了');
@@ -787,7 +792,10 @@ describe('transactionProcessor internal helper functions', () => {
     finalNonce: 1,
     retryCount: 0,
   };
-  const receipt: Pick<TransactionReceipt, 'blockNumber' | 'gasUsed'> = { blockNumber: 123n, gasUsed: 456n };
+  const receipt: Pick<TransactionReceipt, 'blockNumber' | 'gasUsed'> = {
+    blockNumber: 123n,
+    gasUsed: 456n,
+  };
   let mockLogger: Logger;
 
   beforeEach(() => {
@@ -803,9 +811,7 @@ describe('transactionProcessor internal helper functions', () => {
     logTransactionSuccess(dummyResult, receipt, mockLogger);
     expect(mockLogger.info).toHaveBeenCalledWith(`ブロック番号: ${receipt.blockNumber}`);
     expect(mockLogger.info).toHaveBeenCalledWith(`ガス使用量: ${receipt.gasUsed}`);
-    expect(mockLogger.info).toHaveBeenCalledWith(
-      `エクスプローラーURL: ${dummyResult.explorerUrl}`
-    );
+    expect(mockLogger.info).toHaveBeenCalledWith(`エクスプローラーURL: ${dummyResult.explorerUrl}`);
   });
 
   it('logTransactionError logs explorerUrl when present', () => {
@@ -825,9 +831,11 @@ describe('transactionProcessor internal helper functions', () => {
       'レシート取得エラー（トランザクションは送信済み）: some error'
     );
     expect(mockLogger.error).toHaveBeenCalledTimes(1);
-    expect(mockLogger.error).not.toHaveBeenCalledWith(expect.stringContaining('エクスプローラーURL'));
+    expect(mockLogger.error).not.toHaveBeenCalledWith(
+      expect.stringContaining('エクスプローラーURL')
+    );
   });
-  });
+});
 
 describe('handleTransactionReceipt', () => {
   const validRpcUrl = 'http://localhost:8545';
@@ -840,7 +848,7 @@ describe('handleTransactionReceipt', () => {
   const validTxParams: EIP1559TxParams = {
     to: '0x742d35Cc6634C0532925a3b8D4C9db7C9c0c7a8A',
     value: '0',
-      gasLimit: '21000',
+    gasLimit: '21000',
     maxFeePerGas: '20000000000',
     maxPriorityFeePerGas: '1000000000',
     nonce: 1,
@@ -892,12 +900,12 @@ describe('handleTransactionReceipt', () => {
   });
 
   it('should create error result and log correctly on receipt failure', async () => {
-  const dummyRetrySuccessResult = {
+    const dummyRetrySuccessResult = {
       success: true,
-    transactionHash: validTxHash,
+      transactionHash: validTxHash,
       explorerUrl: 'https://etherscan.io/tx/0xhash',
       finalNonce: 1,
-    retryCount: 0,
+      retryCount: 0,
     } as NonceRetrySuccessResult;
     const error = new Error('Receipt retrieval failed');
     mockPublicClient.waitForTransactionReceipt.mockRejectedValue(error);

@@ -63,9 +63,7 @@ describe('nonceRetry', () => {
       expect(mockLogger.info).toHaveBeenCalledWith(
         'トランザクション実行中... (試行 1/4, Nonce: 10)'
       );
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'トランザクション成功 (Nonce: 10)'
-      );
+      expect(mockLogger.info).toHaveBeenCalledWith('トランザクション成功 (Nonce: 10)');
     });
 
     it('should execute successfully without explorerUrl', async () => {

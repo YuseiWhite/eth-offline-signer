@@ -28,16 +28,16 @@ import { loadPrivateKey } from '../../../src/core/keyManager';
 import { FileAccessError, PrivateKeyError } from '../../../src/utils/errors';
 
 describe('keyManager', () => {
-    // 正確に64文字（32バイト）の有効な秘密鍵
-    const validPrivateKey = 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
-    const validPrivateKeyWithPrefix = '0x' + validPrivateKey;
-    const validPrivateKeyWithoutPrefix = validPrivateKey;
+  // 正確に64文字（32バイト）の有効な秘密鍵
+  const validPrivateKey = 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
+  const validPrivateKeyWithPrefix = '0x' + validPrivateKey;
+  const validPrivateKeyWithoutPrefix = validPrivateKey;
 
   let platformSpy: ReturnType<typeof vi.spyOn>;
   let warnSpy: ReturnType<typeof vi.spyOn>;
 
-    beforeEach(() => {
-      vi.clearAllMocks();
+  beforeEach(() => {
+    vi.clearAllMocks();
 
     // Mock console.warn globally for this describe block
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -55,7 +55,7 @@ describe('keyManager', () => {
     // vi.clearAllMocks() in beforeEach should handle this, but explicit restore is safer
     warnSpy.mockRestore();
     platformSpy.mockRestore();
-    });
+  });
 
   describe('loadPrivateKey', () => {
     describe('正常系', () => {
@@ -109,9 +109,7 @@ describe('keyManager', () => {
         expect(warnSpy).toHaveBeenCalledWith(
           expect.stringContaining('秘密鍵ファイルのパーミッションが安全ではありません。')
         );
-        expect(warnSpy).toHaveBeenCalledWith(
-          expect.stringContaining('推奨: 400')
-        );
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('推奨: 400'));
       });
 
       it('Windows環境ではパーミッションチェックをスキップ', async () => {
@@ -399,8 +397,10 @@ describe('keyManager internal error cases', () => {
       // This would test the generic error handling (lines 98-99)
       const { FilePathSchema } = await import('../../../src/types/schema.js');
       const genericError = new Error('Generic validation error');
-      const parseSpy = vi.spyOn(FilePathSchema, 'parse').mockImplementation(() => { throw genericError; });
-      
+      const parseSpy = vi.spyOn(FilePathSchema, 'parse').mockImplementation(() => {
+        throw genericError;
+      });
+
       try {
         await expect(loadPrivateKey('test.key')).rejects.toThrow(genericError);
       } finally {
@@ -508,7 +508,9 @@ describe('keyManager internal error cases', () => {
     it('should convert generic normalization error to PrivateKeyError', async () => {
       // simulate generic error during normalization
       const genericError = new Error('generic');
-      const parseSpy = vi.spyOn(PrivateKeyFormatSchema, 'parse').mockImplementation(() => { throw genericError; });
+      const parseSpy = vi.spyOn(PrivateKeyFormatSchema, 'parse').mockImplementation(() => {
+        throw genericError;
+      });
       // valid private key to reach normalization step
       const validKey = '0x' + 'a'.repeat(64);
       vi.mocked(fs.readFile).mockResolvedValue(validKey);
