@@ -28,16 +28,16 @@ import { loadPrivateKey } from '../../../src/core/keyManager';
 import { FileAccessError, PrivateKeyError } from '../../../src/utils/errors';
 
 describe('keyManager', () => {
-  // 正確に64文字（32バイト）の有効な秘密鍵
-  const validPrivateKey = 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
-  const validPrivateKeyWithPrefix = '0x' + validPrivateKey;
-  const validPrivateKeyWithoutPrefix = validPrivateKey;
+    // 正確に64文字（32バイト）の有効な秘密鍵
+    const validPrivateKey = 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
+    const validPrivateKeyWithPrefix = '0x' + validPrivateKey;
+    const validPrivateKeyWithoutPrefix = validPrivateKey;
 
   let platformSpy: ReturnType<typeof vi.spyOn>;
   let warnSpy: ReturnType<typeof vi.spyOn>;
 
-  beforeEach(() => {
-    vi.clearAllMocks();
+    beforeEach(() => {
+      vi.clearAllMocks();
 
     // Mock console.warn globally for this describe block
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -55,7 +55,7 @@ describe('keyManager', () => {
     // vi.clearAllMocks() in beforeEach should handle this, but explicit restore is safer
     warnSpy.mockRestore();
     platformSpy.mockRestore();
-  });
+    });
 
   describe('loadPrivateKey', () => {
     describe('正常系', () => {
@@ -107,7 +107,7 @@ describe('keyManager', () => {
         const result = await loadPrivateKey('test.key');
         expect(result.privateKey).toBe(validPrivateKeyWithPrefix);
         expect(warnSpy).toHaveBeenCalledWith(
-          expect.stringContaining('⚠️  秘密鍵ファイルのパーミッションが安全ではありません。')
+          expect.stringContaining('秘密鍵ファイルのパーミッションが安全ではありません。')
         );
         expect(warnSpy).toHaveBeenCalledWith(
           expect.stringContaining('推奨: 400')
@@ -121,7 +121,7 @@ describe('keyManager', () => {
         expect(result.privateKey).toBe(validPrivateKeyWithPrefix);
         expect(warnSpy).toHaveBeenCalledWith(
           expect.stringContaining(
-            '⚠️  Windows環境では、ファイルが適切に保護されていることを手動で確認してください:'
+            'Windows環境では、ファイルが適切に保護されていることを手動で確認してください:'
           )
         );
       });

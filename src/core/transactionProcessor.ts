@@ -1,5 +1,9 @@
-import { createPublicClient, http } from 'viem';
-import type { Hex } from 'viem';
+import {
+  createPublicClient,
+  http,
+  type Hex,
+  type TransactionReceipt,
+} from 'viem';
 import { broadcastTransaction } from './broadcaster';
 import { executeWithNonceRetry, type NonceRetrySuccessResult } from './nonceRetry';
 import { signEIP1559TransactionOffline } from './signer';
@@ -88,13 +92,13 @@ function getChainConfig(chainId: number) {
  */
 function logTransactionSuccess(
   retryResult: NonceRetrySuccessResult,
-  receipt: { blockNumber: bigint; gasUsed: bigint },
+  receipt: Pick<TransactionReceipt, 'blockNumber' | 'gasUsed'>,
   logger: Logger
 ): void {
-  logger.info(`⛏️  ブロック番号: ${receipt.blockNumber}`);
-  logger.info(`⛽ ガス使用量: ${receipt.gasUsed}`);
+  logger.info(`ブロック番号: ${receipt.blockNumber}`);
+  logger.info(`ガス使用量: ${receipt.gasUsed}`);
   if (retryResult.explorerUrl) {
-    logger.info(`🔗 エクスプローラーURL: ${retryResult.explorerUrl}`);
+    logger.info(`エクスプローラーURL: ${retryResult.explorerUrl}`);
   }
 }
 
@@ -110,9 +114,9 @@ function logTransactionError(
   errorMessage: string,
   logger: Logger
 ): void {
-  logger.error(`⚠️  レシート取得エラー（トランザクションは送信済み）: ${errorMessage}`);
+  logger.error(`レシート取得エラー（トランザクションは送信済み）: ${errorMessage}`);
   if (retryResult.explorerUrl) {
-    logger.error(`🔗 エクスプローラーURL: ${retryResult.explorerUrl}`);
+    logger.error(`エクスプローラーURL: ${retryResult.explorerUrl}`);
   }
 }
 
@@ -187,7 +191,7 @@ async function handleTransactionReceipt(
   logger: Logger
 ): Promise<NonNullable<TransactionProcessorResult['broadcast']>> {
   try {
-    logger.info('⏳ トランザクションのマイニング完了を待機中...');
+    logger.info('トランザクションのマイニング完了を待機中...');
 
     const chainConfig = getChainConfig(txParams.chainId);
     const publicClient = createPublicClient({
@@ -231,7 +235,7 @@ async function handleBroadcast(
 ): Promise<
   NonceRetrySuccessResult | { success: false; error: Error; finalNonce: number; retryCount: number }
 > {
-  logger.info('📡 トランザクションのブロードキャストを開始...');
+  logger.info('トランザクションのブロードキャストを開始...');
 
   const executeTransaction = async (nonce: number) => {
     const updatedParams = { ...txParams, nonce };
@@ -272,16 +276,16 @@ export async function processTransaction(
   } = validatedOptions;
 
   // 1. オフライン署名（必須処理）
-  userLogger.info('🔐 トランザクションの署名を開始...');
+  userLogger.info('トランザクションの署名を開始...');
   const signedTransaction = await signEIP1559TransactionOffline(
     privateKey as `0x${string}`,
     txParams
   );
-  userLogger.info(`✅ 署名完了`);
+  userLogger.info('署名完了');
 
   // 2. ブロードキャスト処理（オプション）
   if (!broadcast) {
-    userLogger.info('📝 オフライン署名のみ完了しました。ブロードキャストはスキップされます。');
+    userLogger.info('オフライン署名のみ完了しました。ブロードキャストはスキップされます。');
     return { signedTransaction };
   }
 

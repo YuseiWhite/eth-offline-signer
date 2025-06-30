@@ -75,17 +75,17 @@ jobs:
 
       - name: Run security audit
         run: |
-          echo "🔍 Running security audit..."
+          echo "Running security audit..."
           if ! pnpm audit --audit-level=moderate; then
             echo "::error::Moderate-level security vulnerabilities detected"
             echo "Please run 'pnpm audit --audit-level=moderate' locally to see details"
             exit 1
           fi
-          echo "✅ No Moderate-level security vulnerabilities found"
+          echo "No Moderate-level security vulnerabilities found"
 
       - name: Check for known vulnerabilities
         run: |
-          echo "🔍 Checking for known vulnerabilities in dependencies..."
+          echo "Checking for known vulnerabilities in dependencies..."
           pnpm audit --audit-level=low --json > audit-results.json || true
           if [ -s audit-results.json ]; then
             echo "::warning::Low-level vulnerabilities found. Review recommended."
@@ -114,11 +114,11 @@ jobs:
         run: |
           echo "🔨 Building application..."
           pnpm run build
-          echo "✅ Build completed successfully"
+          echo "Build completed successfully"
 
       - name: Verify build outputs
         run: |
-          echo "🔍 Verifying build outputs..."
+          echo "Verifying build outputs..."
           if [ ! -f "dist/cli.cjs" ]; then
             echo "::error::CLI build output not found"
             exit 1
@@ -131,7 +131,7 @@ jobs:
             echo "::error::Library ESM build output not found"
             exit 1
           fi
-          echo "✅ All build outputs verified"
+          echo "All build outputs verified"
 
       - name: Test built CLI
         run: |
@@ -141,18 +141,18 @@ jobs:
 
       - name: Create test files for CLI validation
         run: |
-          echo "📝 Creating test files..."
+          echo "Creating test files..."
           echo "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" > test-build-key.key
           chmod 600 test-build-key.key
           echo '{"to":"0x742d35cc6633c0532925a3b8d5c0e1985b0f8e7f","value":"1000000000000000000","chainId":1,"nonce":0,"gasLimit":"21000","maxFeePerGas":"30000000000","maxPriorityFeePerGas":"2000000000"}' > test-build-params.json
 
       - name: Test CLI signing functionality
         run: |
-          echo "🔐 Testing CLI signing functionality..."
+          echo "Testing CLI signing functionality..."
           RESULT=$(node dist/cli.cjs sign --key-file test-build-key.key --params test-build-params.json --quiet)
           echo "Signing result: $RESULT"
           if [[ $RESULT =~ ^0x[0-9a-fA-F]+$ ]]; then
-            echo "✅ CLI signing test passed"
+            echo "CLI signing test passed"
           else
             echo "::error::CLI signing test failed - invalid output format"
             exit 1

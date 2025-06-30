@@ -31,7 +31,7 @@ async function validateFileAccess(filePath: string): Promise<void> {
       if (!isSecure) {
         const currentPerm = mode.toString(8).padStart(3, '0');
         logger.warn(
-          `⚠️  秘密鍵ファイルのパーミッションが安全ではありません。` +
+          `秘密鍵ファイルのパーミッションが安全ではありません。` +
           `現在: ${currentPerm}, 推奨: 400。` +
           `\n   修正方法: chmod 400 ${filePath}`
         );
@@ -39,7 +39,7 @@ async function validateFileAccess(filePath: string): Promise<void> {
     } else {
       // Windows環境での警告
       logger.warn(
-        `⚠️  Windows環境では、ファイルが適切に保護されていることを手動で確認してください: ${filePath}`
+        `Windows環境では、ファイルが適切に保護されていることを手動で確認してください: ${filePath}`
       );
     }
   } catch (error: unknown) {

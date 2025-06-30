@@ -61,7 +61,10 @@ describe('nonceRetry', () => {
       expect(mockExecute).toHaveBeenCalledTimes(1);
       expect(mockExecute).toHaveBeenCalledWith(10);
       expect(mockLogger.info).toHaveBeenCalledWith(
-        '🔄 トランザクション実行中... (試行 1/4, Nonce: 10)'
+        'トランザクション実行中... (試行 1/4, Nonce: 10)'
+      );
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'トランザクション成功 (Nonce: 10)'
       );
     });
 
@@ -114,7 +117,7 @@ describe('nonceRetry', () => {
       expect(mockExecute).toHaveBeenNthCalledWith(1, 10);
       expect(mockExecute).toHaveBeenNthCalledWith(2, 11);
       expect(mockLogger.info).toHaveBeenCalledWith(
-        '⚠️ Nonceエラーを検出、リトライします (新しいNonce: 11)'
+        'Nonceエラーを検出、リトライします (新しいNonce: 11)'
       );
     });
 
@@ -168,7 +171,7 @@ describe('nonceRetry', () => {
 
       expect(mockExecute).toHaveBeenCalledTimes(4);
       expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining('❌ 最大リトライ回数に達しました')
+        expect.stringContaining('最大リトライ回数に達しました')
       );
     });
 
@@ -249,7 +252,7 @@ describe('nonceRetry', () => {
 
       expect(mockExecute).toHaveBeenCalledTimes(1);
       expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining('❌ Nonceエラー以外のエラーが発生しました')
+        expect.stringContaining('Nonceエラー以外のエラーが発生しました')
       );
     });
 

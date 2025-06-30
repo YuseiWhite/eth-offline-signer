@@ -4,14 +4,14 @@ import type { ChildProcess } from 'node:child_process';
 let anvilProcess: ChildProcess | undefined;
 
 /**
- * 🔧 Anvil グローバルセットアップ
+  Anvil グローバルセットアップ
  * テスト実行前にAnvilプロセスを自動起動し、終了時に確実にクリーンアップ
  */
 export async function setup(): Promise<void> {
   // Anvilのインストール確認
   try {
     await checkAnvilInstallation();
-    console.info('🚀 Starting Anvil for integration tests...');
+    console.info('Starting Anvil for integration tests...');
 
     anvilProcess = spawn('anvil', ['--port', '8545', '--host', '0.0.0.0'], {
       stdio: 'pipe', // ログを静かに
@@ -20,9 +20,9 @@ export async function setup(): Promise<void> {
 
     // Anvilの起動待機（最大10秒）
     await waitForAnvil(10000);
-    console.info('✅ Anvil started successfully');
+    console.info('Anvil started successfully');
   } catch (error) {
-    console.warn('⚠️ Anvil not available, integration tests will be skipped');
+    console.warn('Anvil not available, integration tests will be skipped');
     console.warn(`Reason: ${error}`);
     // エラーでもテスト続行（スキップで対応）
   }
@@ -48,7 +48,7 @@ export async function teardown(): Promise<void> {
       });
     });
 
-    console.info('✅ Anvil stopped');
+    console.info('Anvil stopped');
   }
 }
 

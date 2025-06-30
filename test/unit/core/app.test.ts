@@ -155,7 +155,7 @@ describe('app.ts', () => {
 
       expect(mockGetDisplayNetworkInfo).toHaveBeenCalledWith(1);
       expect(mockConsoleError).toHaveBeenCalledWith(
-        expect.stringContaining('🌐 検出されたネットワーク: Ethereum Mainnet')
+        expect.stringContaining('検出されたネットワーク: Ethereum Mainnet')
       );
     });
 
@@ -196,7 +196,7 @@ describe('app.ts', () => {
 
       expect(mockConsoleError).toHaveBeenCalledWith(
         expect.stringContaining(
-          '⚠️  カスタムネットワークです。ブロードキャスト先が正しいことを確認してください。'
+          'カスタムネットワークです。ブロードキャスト先が正しいことを確認してください。'
         )
       );
     });
@@ -376,7 +376,7 @@ describe('app.ts', () => {
       await runCli(options);
 
       expect(mockLog).toHaveBeenCalledWith('0xhash');
-      expect(mockError).toHaveBeenCalledWith(expect.stringContaining('✅ トランザクションは成功しました'));
+      expect(mockError).toHaveBeenCalledWith(expect.stringContaining('トランザクションは成功しました'));
 
       console.log = originalLog;
       console.error = originalError;
@@ -428,7 +428,7 @@ describe('app.ts', () => {
       await runCli(options);
 
       expect(console.log).toHaveBeenCalledWith('0xhash');
-      expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('⚠️ トランザクションはブロードキャストされましたが確認できませんでした'));
+      expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('トランザクションはブロードキャストされましたが確認できませんでした'));
 
       console.log = originalLog;
       console.warn = originalWarn;
@@ -452,7 +452,7 @@ describe('app.ts', () => {
       await runCli(options);
 
       expect(mockLog).toHaveBeenCalledWith('0xsigned');
-      expect(mockError).toHaveBeenCalledWith(expect.stringContaining('📝 署名済みトランザクションを標準出力しました。'));
+      expect(mockError).toHaveBeenCalledWith(expect.stringContaining('署名済みトランザクションを標準出力しました。'));
 
       console.log = originalLog;
       console.error = originalError;
