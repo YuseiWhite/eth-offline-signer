@@ -103,7 +103,7 @@ function handleCliError(error: Error): void {
   }
 
   if (error.name === 'PrivateKeyError') {
-    console.error(` 秘密鍵エラー: ${error.message}`);
+    console.error(`秘密鍵エラー: ${error.message}`);
     return;
   }
 
