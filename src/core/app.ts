@@ -44,7 +44,7 @@ function loadTransactionParams(filePath: string) {
 // cli.tsから移譲された表示ロジックもここに含める
 function displayNetworkInfo(chainId: number, logger: ReturnType<typeof createLogger>): void {
   const networkInfo = getDisplayNetworkInfo(chainId);
-  logger.info(` 検出されたネットワーク: ${networkInfo.name} (Chain ID: ${chainId})`);
+  logger.info(`検出されたネットワーク: ${networkInfo.name} (Chain ID: ${chainId})`);
   logger.info(`対応エクスプローラー: ${networkInfo.explorer}`);
 
   if (networkInfo.type === 'custom') {
@@ -66,7 +66,7 @@ export async function runCli(rawOptions: unknown) {
 
     privateKeyHandle = await loadPrivateKey(options.keyFile);
     const account = privateKeyToAccount(privateKeyHandle.privateKey);
-    logger.info(` 使用するアドレス: ${account.address}`);
+    logger.info(`使用するアドレス: ${account.address}`);
 
     const validatedParams = loadTransactionParams(options.params);
     displayNetworkInfo(validatedParams.chainId, logger);
