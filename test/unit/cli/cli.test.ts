@@ -75,7 +75,7 @@ describe('CLI Module', () => {
 
       handleCliError(error);
 
-      expect(mockConsoleError).toHaveBeenCalledWith(' ネットワークエラー: network error');
+      expect(mockConsoleError).toHaveBeenCalledWith('ネットワークエラー: network error');
     });
 
     it('should handle PrivateKeyError', async () => {
@@ -85,7 +85,9 @@ describe('CLI Module', () => {
 
       handleCliError(error);
 
-      expect(mockConsoleError).toHaveBeenCalledWith(' 秘密鍵エラー: private key error');
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        '秘密鍵エラー: private key error'
+      );
     });
 
     it('should handle FileAccessError', async () => {
@@ -105,7 +107,7 @@ describe('CLI Module', () => {
 
       handleCliError(error);
 
-      expect(mockConsoleError).toHaveBeenCalledWith(' ブロードキャストエラー: broadcast error');
+      expect(mockConsoleError).toHaveBeenCalledWith('ブロードキャストエラー: broadcast error');
     });
 
     it('should handle general Error', async () => {
@@ -343,7 +345,7 @@ describe('CLI Module', () => {
         'params.json',
       ]);
 
-      expect(console.error).toHaveBeenCalledWith(' 秘密鍵エラー: private key failure');
+      expect(console.error).toHaveBeenCalledWith('秘密鍵エラー: private key failure');
       expect(process.exit).toHaveBeenCalledWith(1);
     });
 
@@ -385,7 +387,7 @@ describe('CLI Module', () => {
         'params.json',
       ]);
 
-      expect(console.error).toHaveBeenCalledWith(' ネットワークエラー: network failure');
+      expect(console.error).toHaveBeenCalledWith('ネットワークエラー: network failure');
       expect(process.exit).toHaveBeenCalledWith(1);
     });
 
@@ -406,7 +408,7 @@ describe('CLI Module', () => {
         'params.json',
       ]);
 
-      expect(console.error).toHaveBeenCalledWith(' ブロードキャストエラー: broadcast failure');
+      expect(console.error).toHaveBeenCalledWith('ブロードキャストエラー: broadcast failure');
       expect(process.exit).toHaveBeenCalledWith(1);
     });
 

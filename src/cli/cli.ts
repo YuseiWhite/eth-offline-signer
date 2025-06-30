@@ -113,12 +113,12 @@ function handleCliError(error: Error): void {
   }
 
   if (error.name === 'NetworkError') {
-    console.error(` ネットワークエラー: ${error.message}`);
+    console.error(`ネットワークエラー: ${error.message}`);
     return;
   }
 
   if (error.name === 'BroadcastError') {
-    console.error(` ブロードキャストエラー: ${error.message}`);
+    console.error(`ブロードキャストエラー: ${error.message}`);
     return;
   }
 
