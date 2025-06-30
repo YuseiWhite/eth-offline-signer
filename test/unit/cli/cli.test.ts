@@ -118,6 +118,84 @@ describe('CLI Module', () => {
         '💥 予期しないエラーが発生しました: general error'
       );
     });
+
+    it('should handle ZodError with missing keyFile and params', async () => {
+      const { handleCliError } = await import('../../../src/cli/cli.js');
+      const { ZodError } = await import('zod');
+
+      const zodError = new ZodError([
+        { code: 'invalid_type', expected: 'string', received: 'undefined', path: ['keyFile'], message: 'Required' },
+        { code: 'invalid_type', expected: 'string', received: 'undefined', path: ['params'], message: 'Required' }
+      ]);
+
+      handleCliError(zodError);
+
+      expect(mockConsoleError).toHaveBeenCalledWith('必須オプションが不足しています:');
+      expect(mockConsoleError).toHaveBeenCalledWith('   --key-file: 秘密鍵ファイル（.key拡張子）のパスを指定してください');
+      expect(mockConsoleError).toHaveBeenCalledWith('   --params: トランザクションパラメータJSONファイルのパスを指定してください');
+      expect(mockConsoleError).toHaveBeenCalledWith('');
+      expect(mockConsoleError).toHaveBeenCalledWith('使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json');
+    });
+
+    it('should handle ZodError with missing keyFile only', async () => {
+      const { handleCliError } = await import('../../../src/cli/cli.js');
+      const { ZodError } = await import('zod');
+
+      const zodError = new ZodError([
+        { code: 'invalid_type', expected: 'string', received: 'undefined', path: ['keyFile'], message: 'Required' }
+      ]);
+
+      handleCliError(zodError);
+
+      expect(mockConsoleError).toHaveBeenCalledWith('--key-fileオプションが必要です');
+      expect(mockConsoleError).toHaveBeenCalledWith('   秘密鍵ファイル（.key拡張子）のパスを指定してください');
+    });
+
+    it('should handle ZodError with missing params only', async () => {
+      const { handleCliError } = await import('../../../src/cli/cli.js');
+      const { ZodError } = await import('zod');
+
+      const zodError = new ZodError([
+        { code: 'invalid_type', expected: 'string', received: 'undefined', path: ['params'], message: 'Required' }
+      ]);
+
+      handleCliError(zodError);
+
+      expect(mockConsoleError).toHaveBeenCalledWith('--paramsオプションが必要です');
+      expect(mockConsoleError).toHaveBeenCalledWith('   トランザクションパラメータJSONファイルのパスを指定してください');
+    });
+
+    it('should handle ZodError with rpcUrl validation error', async () => {
+      const { handleCliError } = await import('../../../src/cli/cli.js');
+      const { ZodError } = await import('zod');
+
+      const zodError = new ZodError([
+        {
+          code: 'custom',
+          message: '--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります。',
+          path: ['rpcUrl']
+        }
+      ]);
+
+      handleCliError(zodError);
+
+      expect(mockConsoleError).toHaveBeenCalledWith('--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります');
+      expect(mockConsoleError).toHaveBeenCalledWith('');
+      expect(mockConsoleError).toHaveBeenCalledWith('使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json --broadcast --rpc-url https://eth-<network>.g.alchemy.com/v2/<YOUR_API_KEY>');
+    });
+
+    it('should handle ZodError with other validation errors', async () => {
+      const { handleCliError } = await import('../../../src/cli/cli.js');
+      const { ZodError } = await import('zod');
+
+      const zodError = new ZodError([
+        { code: 'custom', message: 'カスタムエラーメッセージ', path: ['customField'] }
+      ]);
+
+      handleCliError(zodError);
+
+      expect(mockConsoleError).toHaveBeenCalledWith('customField: カスタムエラーメッセージ');
+    });
   });
 
   describe('getPackageVersion function', () => {
@@ -300,6 +378,58 @@ describe('CLI Module', () => {
       ]);
 
       expect(console.error).toHaveBeenCalledWith('📡 ブロードキャストエラー: broadcast failure');
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it('should handle ZodError from runCli and display user-friendly messages', async () => {
+      const { program } = await import('../../../src/cli/cli.js');
+      const { runCli } = await import('../../../src/core/app.js');
+      const { ZodError } = await import('zod');
+
+      const zodError = new ZodError([
+        { code: 'invalid_type', expected: 'string', received: 'undefined', path: ['keyFile'], message: 'Required' },
+        { code: 'invalid_type', expected: 'string', received: 'undefined', path: ['params'], message: 'Required' }
+      ]);
+
+      vi.mocked(runCli).mockRejectedValueOnce(zodError);
+
+      await program.parseAsync(['node', 'test', 'sign']);
+
+      expect(console.error).toHaveBeenCalledWith('必須オプションが不足しています:');
+      expect(console.error).toHaveBeenCalledWith('   --key-file: 秘密鍵ファイル（.key拡張子）のパスを指定してください');
+      expect(console.error).toHaveBeenCalledWith('   --params: トランザクションパラメータJSONファイルのパスを指定してください');
+      expect(console.error).toHaveBeenCalledWith('使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json');
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it('should handle ZodError from runCli for broadcast validation', async () => {
+      const { program } = await import('../../../src/cli/cli.js');
+      const { runCli } = await import('../../../src/core/app.js');
+      const { ZodError } = await import('zod');
+
+      const zodError = new ZodError([
+        {
+          code: 'custom',
+          message: '--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります。',
+          path: ['rpcUrl']
+        }
+      ]);
+
+      vi.mocked(runCli).mockRejectedValueOnce(zodError);
+
+      await program.parseAsync([
+        'node',
+        'test',
+        'sign',
+        '--key-file',
+        'key.pem',
+        '--params',
+        'params.json',
+        '--broadcast'
+      ]);
+
+      expect(console.error).toHaveBeenCalledWith('--broadcastオプションを使用する場合は、--rpc-urlオプションでRPCエンドポイントを指定する必要があります');
+      expect(console.error).toHaveBeenCalledWith('使用例: node dist/cli.cjs sign --key-file private.key --params transaction.json --broadcast --rpc-url https://eth-<network>.g.alchemy.com/v2/<YOUR_API_KEY>');
       expect(process.exit).toHaveBeenCalledWith(1);
     });
   });
