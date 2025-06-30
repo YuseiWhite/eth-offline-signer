@@ -172,7 +172,6 @@ function getPackageVersion(packagePathsToTry?: string[]): string {
  */
 function createProgram(): Command {
   const program = new Command();
-  program.version(getPackageVersion());
 
   program
     .command('sign')
@@ -211,6 +210,8 @@ function createProgram(): Command {
         }
       }
     );
+
+  program.version(getPackageVersion(), '-v, --version', '現在のバージョンを出力します');
 
   // エラーイベントのハンドリング
   program.exitOverride((err: { code: string; message: string }) => {
