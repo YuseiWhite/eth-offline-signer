@@ -95,10 +95,10 @@ function logTransactionSuccess(
   receipt: Pick<TransactionReceipt, 'blockNumber' | 'gasUsed'>,
   logger: Logger
 ): void {
-  logger.info(`ブロック番号: ${receipt.blockNumber}`.trim());
-  logger.info(`ガス使用量: ${receipt.gasUsed}`.trim());
+  logger.info(`ブロック番号: ${receipt.blockNumber}`);
+  logger.info(`ガス使用量: ${receipt.gasUsed}`);
   if (retryResult.explorerUrl) {
-    logger.info(`エクスプローラーURL: ${retryResult.explorerUrl}`.trim());
+    logger.info(`エクスプローラーURL: ${retryResult.explorerUrl}`);
   }
 }
 
@@ -114,9 +114,9 @@ function logTransactionError(
   errorMessage: string,
   logger: Logger
 ): void {
-  logger.error(`レシート取得エラー（トランザクションは送信済み）: ${errorMessage}`.trim());
+  logger.error(`レシート取得エラー（トランザクションは送信済み）: ${errorMessage}`);
   if (retryResult.explorerUrl) {
-    logger.error(`エクスプローラーURL: ${retryResult.explorerUrl}`.trim());
+    logger.error(`エクスプローラーURL: ${retryResult.explorerUrl}`);
   }
 }
 
@@ -191,7 +191,7 @@ async function handleTransactionReceipt(
   logger: Logger
 ): Promise<NonNullable<TransactionProcessorResult['broadcast']>> {
   try {
-    logger.info('トランザクションのマイニング完了を待機中...'.trim());
+    logger.info('トランザクションのマイニング完了を待機中...');
 
     const chainConfig = getChainConfig(txParams.chainId);
     const publicClient = createPublicClient({
@@ -235,7 +235,7 @@ async function handleBroadcast(
 ): Promise<
   NonceRetrySuccessResult | { success: false; error: Error; finalNonce: number; retryCount: number }
 > {
-  logger.info('トランザクションのブロードキャストを開始...'.trim());
+  logger.info('トランザクションのブロードキャストを開始...');
 
   const executeTransaction = async (nonce: number) => {
     const updatedParams = { ...txParams, nonce };
@@ -276,16 +276,16 @@ export async function processTransaction(
   } = validatedOptions;
 
   // 1. オフライン署名（必須処理）
-  userLogger.info('トランザクションの署名を開始...'.trim());
+  userLogger.info('トランザクションの署名を開始...');
   const signedTransaction = await signEIP1559TransactionOffline(
     privateKey as `0x${string}`,
     txParams
   );
-  userLogger.info('署名完了'.trim());
+  userLogger.info('署名完了');
 
   // 2. ブロードキャスト処理（オプション）
   if (!broadcast) {
-    userLogger.info('オフライン署名のみ完了しました。ブロードキャストはスキップされます。'.trim());
+    userLogger.info('オフライン署名のみ完了しました。ブロードキャストはスキップされます。');
     return { signedTransaction };
   }
 
