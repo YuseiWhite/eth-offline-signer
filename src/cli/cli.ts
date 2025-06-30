@@ -98,12 +98,12 @@ function handleCliError(error: Error): void {
   }
 
   if (error.name === 'InvalidInputError') {
-    console.error(`❌ 入力エラー: ${error.message}`);
+    console.error(`入力エラー: ${error.message}`);
     return;
   }
 
   if (error.name === 'PrivateKeyError') {
-    console.error(`🔐 秘密鍵エラー: ${error.message}`);
+    console.error(` 秘密鍵エラー: ${error.message}`);
     return;
   }
 
@@ -113,12 +113,12 @@ function handleCliError(error: Error): void {
   }
 
   if (error.name === 'NetworkError') {
-    console.error(`🌐 ネットワークエラー: ${error.message}`);
+    console.error(` ネットワークエラー: ${error.message}`);
     return;
   }
 
   if (error.name === 'BroadcastError') {
-    console.error(`📡 ブロードキャストエラー: ${error.message}`);
+    console.error(` ブロードキャストエラー: ${error.message}`);
     return;
   }
 
@@ -157,7 +157,7 @@ function getPackageVersion(packagePathsToTry?: string[]): string {
   }
 
   console.warn(
-    `⚠️  package.jsonが見つかりませんでした（${packagePaths.length}個のパスを確認済み）。デフォルトバージョン ${defaultVersion} を使用します。`
+    `package.jsonが見つかりませんでした（${packagePaths.length}個のパスを確認済み）。デフォルトバージョン ${defaultVersion} を使用します。`
   );
   return defaultVersion;
 }

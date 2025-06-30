@@ -136,12 +136,12 @@ export async function executeWithNonceRetry(options: NonceRetryOptions): Promise
     actualAttempts = attempt + 1;
     try {
       logger.info(
-        `🔄 トランザクション実行中... (試行 ${actualAttempts}/${maxRetries + 1}, Nonce: ${currentNonce})`
+        `トランザクション実行中... (試行 ${actualAttempts}/${maxRetries + 1}, Nonce: ${currentNonce})`
       );
 
       const result = await executeTransaction(currentNonce);
 
-      logger.info(`✅ トランザクション成功 (Nonce: ${currentNonce})`);
+      logger.info(`トランザクション成功 (Nonce: ${currentNonce})`);
       return buildSuccessResult(result, currentNonce, attempt);
     } catch (error: unknown) {
       const errorObj = error instanceof Error ? error : new Error(String(error));
@@ -150,18 +150,18 @@ export async function executeWithNonceRetry(options: NonceRetryOptions): Promise
       if (isNonceError(error)) {
         if (attempt < maxRetries) {
           currentNonce += 1;
-          logger.info(`⚠️ Nonceエラーを検出、リトライします (新しいNonce: ${currentNonce})`);
+          logger.info(`Nonceエラーを検出、リトライします (新しいNonce: ${currentNonce})`);
 
           if (attempt > 0) {
             await exponentialBackoff(attempt - 1);
           }
           continue;
         } else {
-          logger.error(`❌ 最大リトライ回数に達しました (${maxRetries + 1}回試行)`);
+          logger.error(`最大リトライ回数に達しました (${maxRetries + 1}回試行)`);
           break;
         }
       } else {
-        logger.error(`❌ Nonceエラー以外のエラーが発生しました: ${errorObj.message}`);
+        logger.error(`Nonceエラー以外のエラーが発生しました: ${errorObj.message}`);
         break;
       }
     }

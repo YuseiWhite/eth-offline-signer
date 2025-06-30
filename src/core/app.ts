@@ -44,11 +44,11 @@ function loadTransactionParams(filePath: string) {
 // cli.tsから移譲された表示ロジックもここに含める
 function displayNetworkInfo(chainId: number, logger: ReturnType<typeof createLogger>): void {
   const networkInfo = getDisplayNetworkInfo(chainId);
-  logger.info(`🌐 検出されたネットワーク: ${networkInfo.name} (Chain ID: ${chainId})`);
-  logger.info(`🔍 対応エクスプローラー: ${networkInfo.explorer}`);
+  logger.info(` 検出されたネットワーク: ${networkInfo.name} (Chain ID: ${chainId})`);
+  logger.info(`対応エクスプローラー: ${networkInfo.explorer}`);
 
   if (networkInfo.type === 'custom') {
-    logger.info('⚠️  カスタムネットワークです。ブロードキャスト先が正しいことを確認してください。');
+    logger.info('カスタムネットワークです。ブロードキャスト先が正しいことを確認してください。');
   }
 }
 
@@ -66,7 +66,7 @@ export async function runCli(rawOptions: unknown) {
 
     privateKeyHandle = await loadPrivateKey(options.keyFile);
     const account = privateKeyToAccount(privateKeyHandle.privateKey);
-    logger.info(`🔑 使用するアドレス: ${account.address}`);
+    logger.info(` 使用するアドレス: ${account.address}`);
 
     const validatedParams = loadTransactionParams(options.params);
     displayNetworkInfo(validatedParams.chainId, logger);
@@ -88,7 +88,7 @@ export async function runCli(rawOptions: unknown) {
       // オフライン署名
       logger.data(result.signedTransaction);
       if (!options.quiet) {
-        logger.info('📝 署名済みトランザクションを標準出力しました。');
+        logger.info('署名済みトランザクションを標準出力しました。');
       }
     } else if (result.broadcast) {
       // ブロードキャスト時
@@ -98,10 +98,10 @@ export async function runCli(rawOptions: unknown) {
 
       if (!options.quiet) {
         if (result.broadcast.status === 'SUCCESS') {
-          logger.info('✅ トランザクションは成功しました。トランザクションハッシュを標準出力しました。');
+          logger.info('トランザクションは成功しました。トランザクションハッシュを標準出力しました。');
         } else if (result.broadcast.status === 'BROADCASTED_BUT_UNCONFIRMED') {
           logger.warn(
-            '⚠️ トランザクションはブロードキャストされましたが確認できませんでした。トランザクションハッシュを標準出力しました。'
+            'トランザクションはブロードキャストされましたが確認できませんでした。トランザクションハッシュを標準出力しました。'
           );
         }
       }
