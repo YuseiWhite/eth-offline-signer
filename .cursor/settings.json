@@ -1,0 +1,65 @@
+{
+  "features": {
+    "docs": {
+      "enabled": true
+    },
+    "chat": {
+      "model": "claude-4-sonnet"
+    }
+  },
+  "context": {
+    "include": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "/package.json",
+      "/tsconfig.json",
+      "**/*.md",
+      ".gitignore",
+      ".eslintrc.js",
+      ".prettierrc.js",
+      "vitest.config.ts",
+      "tsup.config.ts",
+      "**/*.json"
+    ],
+    "exclude": [
+      "/node_modules/",
+      "/dist/",
+      "/coverage/",
+      "**/*.log",
+      "**/.DS_Store",
+      "pnpm-lock.yaml",
+      "**/*.key",
+      "**/private*"
+    ]
+  },
+  "codebase": {
+    "description": "Ethereum offline transaction signer with CLI interface, supporting EIP-1559 transactions, multiple networks, and comprehensive error handling",
+    "techStack": [
+      "TypeScript",
+      "Node.js",
+      "pnpm",
+      "Viem",
+      "Commander.js",
+      "Vitest",
+      "ESLint",
+      "Prettier",
+      "Docker"
+    ],
+    "architecture": [
+      "Layered Architecture",
+      "Single Responsibility Principle",
+      "Dependency Injection",
+      "Error Boundary Pattern",
+      "Retry Pattern"
+    ],
+    "security": [
+      "Offline signing",
+      "Private key protection",
+      "Input validation",
+      "File permission checks",
+      "No sensitive data logging"
+    ]
+  }
+}

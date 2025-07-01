@@ -1,0 +1,290 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Google OSSレベルの品質基準
+
+## コード品質メトリクス - 必須遵守事項
+
+### サイクロマティック複雑度
+- **目標**: 関数あたり < 5
+- **最大**: 10 (例外的なケースのみ)
+- **測定**: コードを通る線形独立なパスの数
+
+```typescript
+// ✅ 良好: 低複雑度 (2)
+function validateChainId(chainId: number): void {
+  if (!Number.isInteger(chainId) || chainId <= 0) {
+    throw new Error('無効なチェーンIDです');
+  }
+}
+```
+
+### 関数長
+- **目標**: 10-20行
+- **最大**: 30行 (例外的なケースのみ)
+- **除外**: コメントと空白は行数に含めない
+
+### テストカバレッジ
+- **目標**: 95%以上の行カバレッジ
+- **必須**: 重要なセキュリティ機能は100%カバレッジ
+- **すべての公開関数は独立してテスト可能であること**
+
+### 技術的負債
+- **目標**: 技術的負債ゼロ
+- **本番コードに`TODO`コメントを残さない**
+- **コメントアウトされたコードブロックを配置しない**
+- **重複コードをなくす (DRY原則)**
+
+### ドキュメンテーションカバレッジ
+- **目標**: 公開APIは100%
+- **必須**: すべてのエクスポートされた関数にJSDocを記述
+- **`@param`, `@returns`, `@throws` のドキュメントを含む**
+
+## 品質評価の6つの柱
+
+### 1. 堅牢性 (Robustness) - 目標: 95-100/100
+
+#### 多層的なエラーハンドリング
+- すべてのエントリーポイントで入力バリデーションを実装
+- リトライ機構には指数関数的バックオフを使用
+- エッジケースを意味のあるエラーメッセージで明示的に処理
+- カスタムエラークラスで型安全なエラーハンドリングを実装
+
+```typescript
+// ✅ 良好: 多層バリデーション
+function validateInput(input: unknown): ValidatedInput {
+  if (!input || typeof input !== 'object') {
+    throw new ValidationError('入力が不正です');
+  }
+  // 追加のバリデーション...
+}
+```
+
+#### URLと設定のバリデーション
+```typescript
+// ✅ 必須: 堅牢なURLバリデーション
+function validateUrl(url: string, fieldName: string): void {
+  if (!url || typeof url !== 'string') {
+    throw new NetworkError(`${fieldName}が指定されていません`);
+  }
+  
+  try {
+    const parsedUrl = new URL(url);
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      throw new NetworkError(`${fieldName}は有効なHTTP/HTTPSプロトコルである必要があります`);
+    }
+  } catch (error) {
+    if (error instanceof NetworkError) throw error;
+    throw new NetworkError(`${fieldName}のURL形式が無効です: ${url}`);
+  }
+}
+```
+
+### 2. 拡張性 (Extensibility) - 目標: 95-100/100
+
+#### 依存性注入パターン
+```typescript
+// ✅ 必須: テスト容易性のためのロガー注入
+interface Logger {
+  info(message: string): void;
+  error(message: string): void;
+}
+
+function processWithLogger(data: Data, logger: Logger = DEFAULT_LOGGER): Result {
+  // 注入されたロガーを使用した実装
+}
+```
+
+#### 設定オーバーライドのサポート
+```typescript
+// ✅ 必須: 設定オーバーライドのサポート
+export type ConfigOverrides = Record<number, Partial<Config>>;
+
+export function getConfig(
+  id: number,
+  customConfigs?: ConfigOverrides
+): Config {
+  // 設定のマージとバリデーション
+}
+```
+
+### 3. 柔軟性 (Flexibility) - 目標: 95-100/100
+
+#### オプションパターンの実装
+```typescript
+// ✅ 必須: デフォルト値付きの柔軟なオプション
+interface ProcessOptions {
+  logger?: Logger;
+  maxRetries?: number;
+  retryDelay?: number;
+  timeout?: number;
+}
+
+export function processData(
+  data: Data,
+  options: ProcessOptions = {}
+): Promise<Result> {
+  const { 
+    logger = DEFAULT_LOGGER, 
+    maxRetries = 3, 
+    retryDelay = 1000,
+    timeout = 30000 
+  } = options;
+  // 実装
+}
+```
+
+### 4. 保守性 (Maintainability) - 目標: 95-100/100
+
+#### 単一責任の原則 (SRP)
+- 各関数は変更する理由が1つだけであるべき
+- 関数は最大10-20行
+- モジュール間の関心の明確な分離
+
+```typescript
+// ✅ 良好: 単一責任
+function validateUrl(url: string): void { /* URLバリデーションのみ */ }
+function parseConfig(config: RawConfig): Config { /* パースのみ */ }
+function mergeConfigs(base: Config, override: Partial<Config>): Config { /* マージのみ */ }
+```
+
+#### 関数分割の要件
+- 複雑な関数をより小さく、焦点の絞られた関数に分割
+- 各ヘルパー関数は可能な限り純粋であるべき
+- 目的を明確に示す、説明的な関数名を使用
+
+### 5. 可読性 (Readability) - 目標: 95-100/100
+
+#### ドキュメンテーション要件
+
+[ ] この関数は何をするのか？（一行要約）
+[ ] 各引数は、何のためにあり、何を表すのか？（@param）
+[ ] 何が返ってくるのか？その値の意味は？（@returns）
+[ ] 副作用はあるか？（例：ファイルを書き換える、APIを叩くなど）
+[ ] どのような場合に失敗（エラー）するのか？（@throws）
+[ ] 利用する上での前提条件や制約はあるか？（詳細説明）
+
+```typescript
+/**
+ * 署名済みトランザクションのブロードキャスト
+ * @param signedTransaction 署名済みトランザクション（0xプレフィックス付き）
+ * @param chainId 対象チェーンID
+ * @param options オプション: ロガー、再試行設定
+ * @returns ブロードキャスト結果
+ * @throws NetworkError ネットワーク設定エラーの場合
+ * @throws BroadcastError ブロードキャスト失敗の場合
+ * @description XSS攻撃を防ぐためURLエンコーディングを実行
+ */
+```
+
+#### 自己文書化コード
+- 説明的な変数名と関数名を使用
+- 複雑なロジックにはインラインコメントを追加
+- 明確なフローでコードを論理的に構造化
+
+### 6. SRP準拠 - 目標: 100/100
+
+#### 関数責任マトリックス
+各関数は単一の、明確に定義された責任を持つ必要があります:
+- バリデーション関数: 特定のデータ型のみを検証
+- 変換関数: データ形式のみを変換
+- I/O関数: 入出力操作のみを処理
+- ビジネスロジック関数: 特定のビジネスルールのみを実装
+
+## エンタープライズ導入要件
+
+### セキュリティ基準
+- すべての境界で入力のサニタイズとバリデーション
+- 機密情報のロギング禁止
+- 情報漏洩のない適切なエラーハンドリング
+- ユーザー向けURLのXSS防止
+
+### パフォーマンス基準
+- 効率的なアルゴリズム（可能な限りO(n²)を避ける）
+- ホットパスでのオブジェクト生成を最小限に
+- 適切なリソースクリーンアップ（メモリリークなし）
+- 外部呼び出しのタイムアウト設定
+
+### 信頼性基準
+- 重要でない障害に対するグレースフルデグラデーション
+- 指数関数的バックオフを伴うリトライ機構
+- 外部依存関係に対するサーキットブレーカーパターン
+- 適切なエラー回復戦略
+
+### デプロイメント基準
+- 公開APIでの破壊的変更ゼロ
+- 設定の後方互換性
+- 包括的な統合テスト
+- セキュリティ監査準拠（脆弱性なし）
+
+## 測定と強制
+
+### プレコミットチェック
+```bash
+# コミット前にこれらすべてがパスする必要がある
+pnpm run type-check    # TypeScriptバリデーション
+pnpm run lint          # コードスタイルと品質
+pnpm run test          # ユニットテストと統合テスト
+pnpm run build         # ビルド検証
+pnpm run audit         # セキュリティ監査
+```
+
+### 品質ゲート基準
+- ✅ TypeScript: エラーゼロ、strictモード有効
+- ✅ Linter: 警告・エラーゼロ (Biome)
+- ✅ テスト: 100%パス率、95%以上のカバレッジ
+- ✅ ビルド: CJS, ESM, TypeScript定義のビルド成功
+- ✅ セキュリティ: 脆弱性ゼロ
+- ✅ ドキュメンテーション: JSDocカバレッジ完了
+
+### レビューチェックリスト
+PRを準備完了にする前に:
+1. [ ] サイクロマティック複雑度 < 5（関数ごと）
+2. [ ] 関数長 < 平均20行
+3. [ ] 単一責任の原則を遵守
+4. [ ] 包括的なエラーハンドリングを実装
+5. [ ] すべてのエントリーポイントで入力バリデーション
+6. [ ] JSDocドキュメンテーション完了
+7. [ ] 統合テストがすべてのパスをカバー
+8. [ ] 技術的負債の導入なし
+
+## 実装ガイドライン
+
+### エラーハンドリングパターン
+```typescript
+// ✅ 標準的なエラーハンドリングパターン
+async function robustFunction(input: Input): Promise<Output> {
+  // 1. 入力バリデーション
+  if (!isValidInput(input)) {
+    throw new ValidationError('無効な入力が提供されました');
+  }
+  
+  // 2. エラーハンドリング付きのビジネスロジック
+  try {
+    const result = await processInput(input);
+    return result;
+  } catch (error) {
+    // 3. エラー変換とロギング
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error(`処理に失敗しました: ${message}`);
+    throw new ProcessingError(`入力の処理に失敗しました: ${message}`);
+  }
+}
+```
+
+### バリデーションパターン
+```typescript
+// ✅ 包括的なバリデーションパターン
+function validateAndTransform<T>(
+  input: unknown, 
+  validator: (input: unknown) => input is T,
+  transformerName: string
+): T {
+  if (!validator(input)) {
+    throw new ValidationError(`${transformerName}の形式が無効です`);
+  }
+  return input;
+}
+```
