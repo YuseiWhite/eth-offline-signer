@@ -48,7 +48,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: test-results-${{ matrix.os }}-node${{ matrix.node-version }}
           path: |
@@ -93,7 +93,7 @@ jobs:
 
       - name: Upload security audit results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: security-audit-results
           path: audit-results.json
@@ -164,7 +164,7 @@ jobs:
           rm -f test-build-key.key test-build-params.json
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: build-artifacts-${{ github.sha }}
           path: |
